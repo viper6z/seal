@@ -1,2 +1,2 @@
-**/.env
-**/etc-pihole/
+.env
+etc-pihole/
