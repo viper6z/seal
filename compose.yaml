@@ -1,0 +1,3 @@
+include:
+  - homelab-api/docker-compose.yaml
+  - pihole/compose.yaml
