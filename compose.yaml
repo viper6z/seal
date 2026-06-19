@@ -1,3 +1,7 @@
 include:
   - homelab-api/docker-compose.yaml
   - pihole/compose.yaml
+  - reverse-proxy/docker-compose.yml
+
+networks:
+  proxy:
