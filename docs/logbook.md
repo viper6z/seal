@@ -1,3 +1,5 @@
+
+**Entry 1**
 The first part of this project was setting up docker with wsl2 ubuntu integration, and then learning how to set up my containerized services.
 
 The first service was from a public image (Pihole), it was set up just by grabbing the compose file from the pihole docker github repo. 
@@ -21,3 +23,5 @@ Obviously i made tons of mistakes making the python app but thats a given since 
 
 Also have had lots of struggles with wsl2 integration with docker and stuff.
 
+**Entry 2**
+WSL and docker isnt mixing well, getting many integration errors. Im just gonna spin up a virtual machine in proxmox right now. It was planned for further on but this just isnt working.
