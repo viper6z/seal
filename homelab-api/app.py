@@ -18,6 +18,13 @@ def uptime():
         "uptime_human": str(timedelta(seconds=int(seconds)))
     })
 
+@app.route("/health")
+def health():
+    return jsonify({
+        "status" : "healthy"
+    }), 200
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
 
