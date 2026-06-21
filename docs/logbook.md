@@ -25,3 +25,42 @@ Also have had lots of struggles with wsl2 integration with docker and stuff.
 
 **Entry 2**
 WSL and docker isnt mixing well, getting many integration errors. Im just gonna spin up a virtual machine in proxmox right now. It was planned for further on but this just isnt working.
+
+**Entry 3**
+So: I tried getting an Azure vm up and running but the costs of the available versions were too high, decided on aws instead and got a vm up and running there with these specs:
+
+Provider: AWS EC2
+Region: Europe (Stockholm), eu-north-1
+Availability Zone: eu-north-1b
+Instance name: homelab-ec2-01
+Instance type: t3.micro
+Compute: 2 vCPUs, 1 GiB RAM
+Operating system: Ubuntu Server 26.04 LTS
+Architecture: x86_64 / 64-bit x86
+Root disk: 8 GiB gp3 EBS volume
+Networking: Default VPC and subnet
+Inbound access: SSH on port 22 restricted to my current public IP
+HTTP/HTTPS: Not exposed
+Access method: SSH from Windows Terminal using an EC2 key pair
+
+Will now be installing docker, docker compose and test my services, then it's time to get nginx up and running there.
+
+Wrote this in the terminal to install docker on my server:
+# Add Docker's official GPG key:
+sudo apt update
+sudo apt install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
