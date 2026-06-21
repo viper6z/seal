@@ -74,3 +74,35 @@ NAME                IMAGE                 COMMAND                  SERVICE      
 homelab-api         homelab-homelab-api   "python app.py"          homelab-api   8 seconds ago   Up 7 seconds   0.0.0.0:5000->5000/tcp, [::]:5000->5000/tcp
 homelab-traefik-1   traefik:v3.7          "/entrypoint.sh --ap…"   traefik       8 seconds ago   Up 7 seconds   0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
 
+What i'm going to do now, is swap traefik for nginx. First ill need to map out my system.
+- What is running?
+- Which ports are exposed?
+- Which container talks to which container?
+
+What's running: my flask api is running, listening on port 5000, traefik is listening on port 80. the traefik dashbord is listening on port 8080. 
+
+Which container talks to which container: the reverse proxy talks to the api
+
+EC2 VM host network
+├── port 80
+│   └── forwarded into Traefik container
+│
+├── port 8080
+│   └── forwarded into Traefik dashboard
+│
+└── port 5000
+    └── forwarded directly into Flask API container
+
+Docker private network
+├── Traefik
+│   └── talks to homelab-api:5000
+│
+└── homelab-api
+    └── listens on port 5000 internally
+
+One important thing i have learned today, by dialogue with ChatGPT: 
+- The port mappings in the docker compose file dictate on which ports the machine can reach the services, while the service/app configurations themselves dictate on which ports they can be reached "internally". So for example, in my python app; app.run(host="0.0.0.0", port=5000) means that Flask listens inside it's own container on port 5000.
+While this code in the compose:
+    ports:
+        - "5000:5000"
+creates the mapping of machine:5000 -> this container:5000
