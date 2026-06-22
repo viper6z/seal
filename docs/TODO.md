@@ -1,5 +1,86 @@
-[x] - Get nginx running on new port 
-[x] - Remove traefik and remove unnecessary exposure
-[] - split docker network into edge and backend
+[] - define rules for my protocol
+[] - implement python code
+[] - containerize and get running on docker network
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
