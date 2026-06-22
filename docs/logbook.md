@@ -106,3 +106,43 @@ While this code in the compose:
     ports:
         - "5000:5000"
 creates the mapping of machine:5000 -> this container:5000
+
+**Entry 4**
+Ive now added nginx alongside traefik for now.
+
+The process went like this:
+    - Look up the public image, choose a tag, i chose alpine something
+    - Make the nginx.config file and set it up i just wrote the server block that makes the container listen on port 80 and forward to the flask api
+    - Then make the compose file, where i get the image, open port 8081 on machine to the container 80, add it to the network, and mount the config file into the containers file system. a caveat here was since we only included one block of the config we had to specify a subfolder instead of overwriting the full pre shipped config file. 
+
+Here is the output of docker compose ps: 
+    ubuntu@ip-172-31-33-11:~/homelab$ docker compose ps
+NAME                IMAGE                 COMMAND                  SERVICE       CREATED          STATUS         PORTS
+homelab-api         homelab-homelab-api   "python app.py"          homelab-api   20 seconds ago   Up 9 seconds   0.0.0.0:5000->5000/tcp, [::]:5000->5000/tcp
+homelab-nginx-1     nginx:1.30.3-alpine   "/docker-entrypoint.…"   nginx         20 seconds ago   Up 9 seconds   0.0.0.0:8081->80/tcp, [::]:8081->80/tcp
+homelab-traefik-1   traefik:v3.7          "/entrypoint.sh --ap…"   traefik       3 hours ago      Up 3 hours     0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+
+Testing
+
+curl -i http://localhost:8081/health
+
+Returned:
+
+HTTP/1.1 200 OK
+Server: nginx/1.30.3
+
+{"status":"healthy"}
+
+This proves the full path works:
+
+curl
+→ VM localhost:8081
+→ Nginx
+→ Flask API /health
+→ JSON response back through Nginx
+
+I also tested an unknown path:
+
+curl -i http://localhost:8081/surprise
+
+Nginx still forwards /surprise to Flask. Flask has no route for it, so Flask returns a 404 Not Found, which Nginx passes back to the client.
