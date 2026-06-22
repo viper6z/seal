@@ -191,3 +191,27 @@ curl http://localhost:5000/
 
 `curl -i http://localhost/health` also returned `Server: nginx/1.30.3`, confirming that Nginx is now the only entry point to the API.
 
+**Entry 6**
+I have replaced the old shared 'proxy' docker network with a split edge/backend networks. 
+
+edge has nginx only, while backend has nginx and homelab-api.
+
+nginx is connected to both networks so it acts like a bridge between incoming traffic on port 80 and the api/other services in the future. 
+
+The request path is now:
+
+EC2 host:80
+→ Nginx
+→ backend network
+→ homelab-api:5000
+
+I verified it with docker network inspect:
+
+homelab_edge:
+  homelab-nginx-1
+
+homelab_backend:
+  homelab-nginx-1
+  homelab-api
+
+So the result now is that nginx is the only container that receives traffic from the host and it is the only one communicating directly with the other containers.
