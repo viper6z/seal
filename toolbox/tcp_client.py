@@ -1,6 +1,6 @@
 import socket
 
-HOST = "127.0.0.1"
+HOST = "tcp-service"
 PORT = 9000
 
 while True:
