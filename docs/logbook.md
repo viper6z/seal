@@ -215,3 +215,97 @@ homelab_backend:
   homelab-api
 
 So the result now is that nginx is the only container that receives traffic from the host and it is the only one communicating directly with the other containers.
+
+**Entry 7**
+
+Today I made my own small TCP service together with a terminal client to test it.
+
+First I made a `README.md` inside the `tcp-service` directory which describes my own application layer protocol. It runs on TCP port 9000, uses UTF-8, and every command ends with `\n`.
+
+The basic flow is:
+
+```text
+client opens TCP connection
+→ sends one command
+→ server responds
+→ server closes connection
+```
+
+The currently implemented commands are `PING` and `ECHO`.
+
+Examples:
+
+```text
+PING
+→ PONG
+
+ECHO hello
+→ ECHO hello
+```
+
+I also made two different error cases:
+
+```text
+FAKECOMMAND hello
+→ ERROR: unknown command
+
+PING hello
+→ ERROR: invalid request
+
+ECHO
+→ ERROR: invalid request
+```
+
+Then I made `server.py` using Python's built-in socket module. The server binds to `0.0.0.0:9000`, listens for connections, receives data, decodes the bytes from UTF-8, parses the command and sends back a response.
+
+One thing I learned here is that TCP is only a byte stream, so I needed to define my own way of knowing where a command ends. I chose newline terminated commands. I also used `rstrip("\n")` instead of `strip()` so I only remove the protocol newline and not normal spaces from an ECHO request.
+
+After that I made `toolbox/tcp_client.py`.
+
+The client is terminal based. I decided that the client should not validate commands itself. It just takes whatever I type, adds `\n`, sends it to the server and prints the response. This makes it easy to test both valid and invalid commands.
+
+The client opens a new TCP connection for every command because the server closes the connection after responding. `quit` is handled locally by the client and exits the terminal program.
+
+Then I containerized both services.
+
+```text
+tcp-service/
+├── README.md
+├── server.py
+├── Dockerfile
+└── compose.yaml
+
+toolbox/
+├── tcp_client.py
+├── Dockerfile
+└── compose.yaml
+```
+
+Neither service needs a `requirements.txt` because both only use Python standard library modules.
+
+Both services are connected to the internal `backend` Docker network. I did not expose any ports for them, since this TCP service should not be reachable from the internet or through Nginx.
+
+Instead the toolbox connects internally to:
+
+```text
+tcp-service:9000
+```
+
+This was a good lesson in Docker networking. Inside the toolbox container, `127.0.0.1` means the toolbox container itself, not the TCP service. Docker Compose has internal DNS, so the service name `tcp-service` resolves to the TCP container's internal IP address.
+
+Testing was done with:
+
+```bash
+docker compose exec -it toolbox python tcp_client.py
+```
+
+The full path now works:
+
+```text
+SSH terminal
+→ toolbox container
+→ Docker internal DNS
+→ tcp-service:9000 on backend network
+→ response back to terminal
+```
+
