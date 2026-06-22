@@ -4,7 +4,7 @@ services:
     container_name: homelab-api
     restart: unless-stopped
     networks:
-      - proxy
+      - backend
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homelab-api.rule=Host(`api.lab.home`)"

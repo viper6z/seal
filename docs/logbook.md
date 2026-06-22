@@ -146,3 +146,48 @@ I also tested an unknown path:
 curl -i http://localhost:8081/surprise
 
 Nginx still forwards /surprise to Flask. Flask has no route for it, so Flask returns a 404 Not Found, which Nginx passes back to the client.
+
+## Entry #5 — Replaced Traefik with Nginx
+
+I removed Traefik from the active Compose stack and moved Nginx from the temporary test port to the normal HTTP port:
+
+```yaml
+ports:
+  - "80:80"
+```
+
+The VM now receives HTTP traffic on port 80 and Docker forwards it to Nginx on port 80 inside its container.
+
+I also removed the API’s direct port mapping:
+
+```yaml
+ports:
+  - "5000:5000"
+```
+
+The Flask API still listens on port 5000 inside its container, but the EC2 VM no longer exposes that port directly. It can now only be reached through Nginx over the private Docker network.
+
+Final request path:
+
+```text
+VM:80
+→ Nginx container:80
+→ Docker network
+→ homelab-api:5000
+```
+
+Tests:
+
+```bash
+curl http://localhost/
+# Welcome to my homelab API!
+
+curl http://localhost/health
+# {"status":"healthy"}
+
+curl http://localhost:5000/
+# Failed to connect
+```
+
+`curl -i http://localhost/health` also returned `Server: nginx/1.30.3`, confirming that Nginx is now the only entry point to the API.
+

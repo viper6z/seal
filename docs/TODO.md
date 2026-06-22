@@ -1,5 +1,5 @@
 [x] - Get nginx running on new port 
-[] - Remove traefik and remove unnecessary exposure
+[x] - Remove traefik and remove unnecessary exposure
 [] - split docker network into edge and backend
 
 
