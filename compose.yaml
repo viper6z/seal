@@ -1,7 +1,7 @@
 include:
   - homelab-api/docker-compose.yaml
   #- pihole/compose.yaml - not keen on using this anymore, it was a cool little adblocker but it doesnt fit well with the lab
-  - reverse-proxy/docker-compose.yml
+  # - reverse-proxy/docker-compose.yml
   - nginx/compose.yaml
 
 networks:
