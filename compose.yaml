@@ -5,7 +5,7 @@ include:
   - nginx/compose.yaml
 
 networks:
-  - edge:
-  - backend:
+  - edge
+  - backend
 
 
