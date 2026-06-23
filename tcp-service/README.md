@@ -1,77 +1,55 @@
-# TCP service
+**TCP service**
 
 A small custom application-layer protocol built on TCP.
 
-## Protocol
+**Protocol**
 
-**Transport:** TCP
-**Port:** `9000`
-**Encoding:** UTF-8
-**Message format:** One command per line, terminated by `\n`
+Transport: TCP
+Port: `9000`
+Encoding: UTF-8
+Format: one command per line, terminated by `\n`
 
 ```text
 COMMAND [argument]\n
 ```
 
-## Connection policy
+**Connection policy**
 
-1. The client opens a TCP connection.
-2. The client sends one command.
-3. The server validates and handles the command.
-4. The server sends one response.
-5. The server closes the client connection.
+The client opens a TCP connection and sends one command.
+The server validates the command, sends one response, then closes the connection.
 
 The client opens a new TCP connection for every command.
 
-## Commands
+**Commands**
 
-### `PING`
-
-Request:
+`PING`
 
 ```text
 PING\n
-```
-
-Response:
-
-```text
-PONG\n
+→ PONG\n
 ```
 
 `PING` does not accept an argument.
 
-### `ECHO <text>`
-
-Request:
+`ECHO <text>`
 
 ```text
 ECHO hello world\n
-```
-
-Response:
-
-```text
-ECHO hello world\n
+→ ECHO hello world\n
 ```
 
 `ECHO` requires an argument.
 
-## Errors
+**Errors**
 
-Unknown commands return:
-
-```text
-ERROR: unknown command\n
-```
-
-Known commands with an invalid format return:
+Unknown command:
 
 ```text
-ERROR: invalid request\n
+FAKECOMMAND hello
+→ ERROR: unknown command
 ```
 
-Examples:
+Invalid request:
 
 ```text
 PING hello
@@ -79,20 +57,16 @@ PING hello
 
 ECHO
 → ERROR: invalid request
-
-FAKECOMMAND hello
-→ ERROR: unknown command
 ```
 
-## Internal networking
+**Internal networking**
 
 The service is only available on the internal Docker `backend` network.
 
 It is not exposed through a host port or Nginx.
 
-Other containers connect using Docker Compose DNS:
+Other containers connect to it using Docker Compose DNS:
 
 ```text
 tcp-service:9000
 ```
-
