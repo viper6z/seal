@@ -1,22 +1,22 @@
-* [ ]: Create `udp-service/` with `README.md`, `server.py`, `Dockerfile` and `compose.yaml`
 
-* [ ]: Add `udp-service` to the root Compose file and connect it only to `backend`
 
-* [ ]: Run `docker compose config` and confirm the service has no host port mapping
 
-* [ ]: Build the first UDP server that binds to `0.0.0.0:9001`
 
-* [ ]: Use `recvfrom()` to receive both the datagram and sender address
 
-* [ ]: Handle `JOIN` and store subscribed client addresses
 
-* [ ]: Handle `UPDATE <text>`
 
-* [ ]: Add a server-generated sequence number for every accepted update
 
-* [ ]: Broadcast `TEXT <sequence> <text>` to all subscribed clients with `sendto()`
 
-* [ ]: Create `toolbox/udp_client.py`
+
+
+
+
+
+
+
+
+
+
 
 * [ ]: Make the client use one UDP socket for both sending and receiving
 
