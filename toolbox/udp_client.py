@@ -43,40 +43,40 @@ try:
             timeout
         )
 
-            if stdin_fd in readable:
-                key = sys.stdin.read(1)
+        if stdin_fd in readable:
+            key = sys.stdin.read(1)
 
-                
-                if key in ("\x7f", "\b"): #if backspace we remove one chracter from current text
-                    if current_text:
-                        current_text = current_text[:-1]
-                        text_changed = True
-                        redraw(current_text)
-
-                elif key.isprintable(): #otherwise we add
-                    current_text += key
+            
+            if key in ("\x7f", "\b"): #if backspace we remove one chracter from current text
+                if current_text:
+                    current_text = current_text[:-1]
                     text_changed = True
                     redraw(current_text)
 
-            if client_socket in readable: 
-                data, _address = client_socket.recvfrom(1024)
-                message = data.decode("utf-8")
+            elif key.isprintable(): #otherwise we add
+                current_text += key
+                text_changed = True
+                redraw(current_text)
 
-                command, separator, payload = message.partition(" ") #split incoming datagram
+        if client_socket in readable: 
+            data, _address = client_socket.recvfrom(1024)
+            message = data.decode("utf-8")
 
-                if command == "TEXT" and separator:
-                    sequence_text, separator, received_text = payload.partition(" ")
+            command, separator, payload = message.partition(" ") #split incoming datagram
 
-                    if separator:
-                        try:
-                            received_sequence = int(sequence_text)
-                        except ValueError:
-                            continue
-                
-                        if received_sequence > last_sequence: #if the message is newer we update, this is checked with the sequence number
-                            last_sequence = received_sequence
-                            current_text = received_text
-                            redraw(current_text)
+            if command == "TEXT" and separator:
+                sequence_text, separator, received_text = payload.partition(" ")
+
+                if separator:
+                    try:
+                        received_sequence = int(sequence_text)
+                    except ValueError:
+                        continue
+            
+                    if received_sequence > last_sequence: #if the message is newer we update, this is checked with the sequence number
+                        last_sequence = received_sequence
+                        current_text = received_text
+                        redraw(current_text)
 
             if time.monotonic() >= next_send_time:
                 if text_changed: #if its time to send, we send, and then we tell the program that the text is up to date
