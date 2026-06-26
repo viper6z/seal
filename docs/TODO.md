@@ -1,3 +1,21 @@
+A. Host bootstrap only
+Install Docker, enable it, create directories/users, verify the machine is ready. You still deploy Compose manually at first.
+
+Smallest learning step
+Clear Terraform/Ansible boundary
+Does not yet give one-command app deployment
+
+B. Host bootstrap + Compose deployment
+Ansible configures Docker, gets the repo or files onto the VM, creates needed configuration, and runs Compose.
+
+Produces the first genuinely reproducible lab deployment
+Introduces app-deployment decisions immediately
+
+C. Full deployment automation from CI
+GitHub Actions runs Terraform/Ansible after a merge.
+
+Valuable eventual milestone
+Adds secrets, SSH access, runner permissions, and deployment safety too early unless the manual path works first
 
 
 
@@ -17,28 +35,6 @@
 
 
 
-
-* [ ]: Make the client use one UDP socket for both sending and receiving
-
-* [ ]: Send `JOIN` when the client starts
-
-* [ ]: First make a simple version where `input()` sends `UPDATE <text>` after Enter
-
-* [ ]: Test two clients in separate SSH terminals and make sure both receive the same broadcast
-
-* [ ]: Add client-side sequence checking so older `TEXT` packets are ignored
-
-* [ ]: Upgrade the client from `input()` to raw keypress reading
-
-* [ ]: Keep a local `current_text` buffer and support normal characters, Backspace and Ctrl-C
-
-* [ ]: Send the latest full text every 0.1 seconds only when it changed
-
-* [ ]: Make terminal redraws readable when incoming broadcasts arrive
-
-* [ ]: Test server restart, wrong port, non-subscribed client and multiple clients typing
-
-* [ ]: Add a short logbook entry, commit and push
 
 
 
