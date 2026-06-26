@@ -447,3 +447,64 @@ The Terraform configuration is ready to apply.
 
 Next step is to confirm my public IP has not changed, run `terraform apply`, get the VM public IP, and SSH into the new Ubuntu VM using the private key.
 
+I ran `terraform apply` and Terraform successfully created all 10 resources.
+
+```text
+Apply complete! Resources: 10 added, 0 changed, 0 destroyed.
+```
+
+After that I added a Terraform output for the EC2 public IP:
+
+```hcl
+output "app_server_public_ip" {
+  description = "public ip of the ec2 instance"
+  value       = aws_instance.app_server.public_ip
+}
+```
+
+Running Terraform again made no infrastructure changes, but it printed the public IP of the VM.
+
+I then connected from WSL with:
+
+```bash
+ssh -i ~/.ssh/homelab-ec2 ubuntu@<public-ip>
+```
+
+The first connection asked me to verify the VM SSH host fingerprint. After accepting it, SSH saved the fingerprint in my local `known_hosts` file.
+
+I initially got:
+
+```text
+Permission denied (publickey)
+```
+
+I had forgotten that I gave the private key a passphrase when I created it. After entering the correct passphrase, I could SSH into the new Ubuntu VM.
+
+The full SSH path was:
+
+```text
+my WSL machine
+→ EC2 public IP
+→ Internet Gateway
+→ public subnet route table
+→ EC2 security group allows my IP on TCP 22
+→ SSH service on the Ubuntu VM
+→ matching public/private SSH key authentication
+```
+
+The security group allowed my network connection to reach port 22.
+
+The SSH key pair allowed me to authenticate as the `ubuntu` user. The VM has the public key, while I keep the matching private key locally. The passphrase unlocks that private key locally so SSH can use it.
+
+This completes the first Terraform milestone:
+
+```text
+Terraform configuration
+→ AWS VPC and public subnet
+→ EC2 Ubuntu VM
+→ SSH access from my local WSL machine
+```
+
+Next step is to use Ansible to configure the VM instead of manually installing Docker and deploying the Compose stack.
+
+
