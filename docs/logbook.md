@@ -321,4 +321,129 @@ I used `select` in the client so it can listen for both keyboard input and incom
 
 I tested it by running two clients in separate terminals. Typing in one updated the other basically instantly. I also used `tcpdump` to see the actual UDP `UPDATE` packets arriving at port 9001 and the server broadcasting the `TEXT` packets back to each client.
 
+**Entry 9**
+
+Today I started moving the AWS VM part of the homelab into Terraform.
+
+The goal for this first Terraform milestone is not to automate everything yet. I just want Terraform to create my AWS network and Ubuntu VM, then I will SSH into it manually. Later Ansible will configure the VM with Docker, Compose, and the services.
+
+I installed Terraform and AWS CLI in WSL and created a separate AWS profile called `homelab-terraform`.
+
+Terraform uses that local profile to authenticate to AWS. The IAM access keys are only for Terraform and AWS CLI to talk to AWS APIs. They are separate from the SSH keys used to log into the Linux VM.
+
+I decided to make my own VPC instead of using the default VPC.
+
+The network so far is:
+
+```text
+VPC: 10.0.0.0/16
+→ public subnet: 10.0.1.0/24
+→ route table
+→ Internet Gateway
+→ internet
+```
+
+The subnet has public IP assignment enabled, and the route table has this route:
+
+```text
+0.0.0.0/0
+→ Internet Gateway
+```
+
+I also associated that route table with the subnet. This means instances launched in the subnet can get a public IP and have a route out to the internet.
+
+Then I created a security group for SSH access.
+
+It allows:
+
+```text
+Inbound TCP port 22
+→ only from my current public IP /32
+```
+
+It also allows all outbound traffic for now.
+
+One thing I learned is that `0.0.0.0/0` means different things depending on where it is used.
+
+Inside the route table it means:
+
+```text
+traffic going to any IPv4 destination
+→ send it to the Internet Gateway
+```
+
+Inside a security group inbound rule it would mean:
+
+```text
+allow incoming traffic from any IPv4 address
+```
+
+I only allow SSH from my own public IP, so I used `/32`, which represents one specific IPv4 address.
+
+I also made a dedicated SSH key pair for the EC2 VM.
+
+```text
+~/.ssh/homelab-ec2
+→ private key, stays only on my computer
+
+~/.ssh/homelab-ec2.pub
+→ public key
+```
+
+I copied only the public key into the repository:
+
+```text
+terraform/keys/homelab-ec2.pub
+```
+
+Terraform reads that file and registers it in AWS as an EC2 key pair.
+
+The EC2 instance is now explicitly connected to:
+
+```text
+Ubuntu AMI
+→ custom subnet
+→ SSH security group
+→ EC2 key pair
+```
+
+I also learned that AWS only receives the public half of the SSH key pair. The VM gets the public key, and my local SSH client proves it has the matching private key when I connect. The private key never goes into Terraform, Git, AWS, or the VM.
+
+I accidentally committed Terraform's `.terraform` directory, which included the downloaded AWS provider binary. GitHub rejected the push because the provider binary was around 674 MB.
+
+I fixed that by adding this kind of local Terraform stuff to `.gitignore`:
+
+```text
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+```
+
+I kept `.terraform.lock.hcl` committed because it locks the provider version, and I kept the public SSH key committed because GitHub Actions will need access to it later.
+
+The final Terraform plan currently says:
+
+```text
+Plan: 10 to add, 0 to change, 0 to destroy.
+```
+
+The resources Terraform will create are:
+
+```text
+VPC
+subnet
+Internet Gateway
+route table
+route table association
+security group
+SSH ingress rule
+egress rule
+EC2 key pair
+EC2 instance
+```
+
+The Terraform configuration is ready to apply.
+
+Next step is to confirm my public IP has not changed, run `terraform apply`, get the VM public IP, and SSH into the new Ubuntu VM using the private key.
 
