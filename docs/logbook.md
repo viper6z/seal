@@ -309,3 +309,16 @@ SSH terminal
 → response back to terminal
 ```
 
+**Entry 8**
+
+Today I made a UDP service with a terminal client that synchronizes a live text field between multiple clients.
+
+The client sends `JOIN` when it starts, and the server stores its IP and port as a subscriber. When I type, the client sends `UPDATE <current text>` to the server. The server increases a sequence number and broadcasts `TEXT <sequence> <text>` to every subscribed client.
+
+Unlike the TCP service, UDP has no connection and no newline framing. Each UDP datagram is already one message.
+
+I used `select` in the client so it can listen for both keyboard input and incoming UDP messages at the same time.
+
+I tested it by running two clients in separate terminals. Typing in one updated the other basically instantly. I also used `tcpdump` to see the actual UDP `UPDATE` packets arriving at port 9001 and the server broadcasting the `TEXT` packets back to each client.
+
+
