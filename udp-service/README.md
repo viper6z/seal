@@ -5,7 +5,7 @@ Each keystroke update is sent as an `UPDATE <text>` datagram. The server assigns
 a monotonically increasing sequence number and broadcasts `TEXT <sequence> <text>`
 to every subscribed client.
 
-![UDP live-text demo](docs/udp-live-demo.gif)
+![UDP live-text demo](./docs/udp-live-demo.gif)
 
 The packet capture uses `tcpdump -i any`, so Docker virtual-network traffic can
 appear twice as it crosses both ends of a virtual interface. The application sends
