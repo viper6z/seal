@@ -507,4 +507,131 @@ Terraform configuration
 
 Next step is to use Ansible to configure the VM instead of manually installing Docker and deploying the Compose stack.
 
+**Entry 10**
+
+Today I started the Ansible phase of the homelab.
+
+Terraform now creates the AWS network and Ubuntu VM. The next layer is Ansible, which will configure that VM so I do not have to manually install Docker, clone the repository, or start the Compose stack every time I recreate the server.
+
+The intended separation is:
+
+```text
+Terraform
+→ creates AWS infrastructure
+
+Ansible
+→ configures the Linux VM and deploys the project
+
+Docker Compose
+→ defines and runs the containers
+```
+
+For the first Ansible milestone, I am deliberately keeping the scope small.
+
+The only goal is to prove this connection path works:
+
+```text
+Terraform output
+→ Ansible inventory
+→ SSH connection to EC2
+→ Ansible runs a harmless test
+```
+
+I installed Ansible inside my WSL Ubuntu environment.
+
+My WSL machine is the Ansible control node. This means it runs the Ansible commands and connects outward to the EC2 VM.
+
+```text
+WSL machine
+→ runs Ansible
+
+EC2 Ubuntu VM
+→ managed by Ansible over SSH
+```
+
+I do not need to install Ansible or an Ansible agent on the EC2 instance. Ansible uses the existing SSH access that I already configured during the Terraform milestone.
+
+Terraform currently outputs the public IP of the EC2 server:
+
+```text
+app_server_public_ip = "51.20.95.154"
+```
+
+I also already have the SSH key pair used for the VM:
+
+```text
+~/.ssh/homelab-ec2
+→ private key, stays on my WSL machine
+
+~/.ssh/homelab-ec2.pub
+→ public key, registered with AWS and installed on the VM
+```
+
+The private key has a passphrase. Instead of putting the path or passphrase into the repository, I will use `ssh-agent` locally. The agent holds the unlocked private key in my current local session so Ansible can reuse it for SSH authentication.
+
+I created an Ansible inventory file:
+
+```text
+ansible/inventory.ini
+```
+
+The inventory is Ansible’s list of machines it can manage.
+
+My first inventory group is:
+
+```ini
+[homelab]
+app_server ansible_host=51.20.95.154 ansible_user=ubuntu
+```
+
+The structure is:
+
+```ini
+[group_name]
+host_alias key=value key=value
+```
+
+In this case:
+
+```text
+homelab
+→ a group name I chose
+
+app_server
+→ an inventory alias I chose for the EC2 VM
+
+ansible_host
+→ the real IP address Ansible should connect to
+
+ansible_user
+→ the Linux user Ansible should log in as
+```
+
+`app_server` is not the real hostname of the VM. It is just Ansible’s internal name for that managed host.
+
+The inventory can also contain my own variables later, such as:
+
+```text
+deploy_path
+environment
+app_port
+```
+
+Those variables do not do anything automatically. They only become meaningful when a future Ansible playbook uses them.
+
+The `ansible_*` variables are different because they are special connection variables that Ansible already understands.
+
+The next step is to load my private key into `ssh-agent` and run Ansible’s ping module against the `homelab` group.
+
+A successful result will be:
+
+```text
+pong
+```
+
+This is not a normal network ping. It means Ansible successfully connected to the EC2 VM over SSH and was able to run a small check there.
+
+Once that works, the first Ansible connectivity milestone is complete. After that I can start writing playbooks to make the VM into a reproducible Docker host.
+
+
 
