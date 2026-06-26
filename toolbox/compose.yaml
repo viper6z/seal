@@ -1,6 +1,7 @@
 services:
   toolbox:
-    build: . 
+    build: ./toolbox
     networks:
       - backend
-
+    stdin_open: true
+    tty: true
