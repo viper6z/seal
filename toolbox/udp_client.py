@@ -78,13 +78,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
                             current_text = received_text
                             redraw(current_text)
 
-                if time.monotonic() >= next_send_time:
-                    if text_changed: #if its time to send, we send, and then we tell the program that the text is up to date
-                        update = f"UPDATE {current_text}"
-                        client_socket.sendto(update.encode("utf-8"), (HOST, PORT))
-                        text_changed = False
+            if time.monotonic() >= next_send_time:
+                if text_changed: #if its time to send, we send, and then we tell the program that the text is up to date
+                    update = f"UPDATE {current_text}"
+                    client_socket.sendto(update.encode("utf-8"), (HOST, PORT))
+                    text_changed = False
 
-                    next_send_time = time.monotonic() + SEND_INTERVAL #and we schedule the next send time
+                next_send_time = time.monotonic() + SEND_INTERVAL #and we schedule the next send time
 
     except KeyboardInterrupt: #catches ctrl+c
         pass
