@@ -49,4 +49,13 @@ jobs:
       - name: ansible syntax check
         run: ansible-playbook -i inventory.ini playbook.yaml --syntax-check
 
+  compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v7
+
+      - name: validate compose
+        run: docker compose config
 
