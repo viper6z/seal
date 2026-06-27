@@ -1,0 +1,71 @@
+- name: Bootstrap server 
+  hosts: homelab
+  become: true 
+
+  tasks:
+    - name: ensure git installed
+      ansible.builtin.apt:
+       name: git
+       state: present
+    
+    - name: ensure ca-certificates and curl are installed
+      ansible.builtin.apt:
+       name:
+        - ca-certificates
+        - curl
+       state: present
+    
+    - name: add docker apt repo
+      ansible.builtin.deb822_repository:
+       name: docker
+       types: deb 
+       uris: https://download.docker.com/linux/ubuntu
+       suites: "{{ ansible_distribution_release }}"
+       components: stable 
+       architectures: amd64
+       signed_by: https://download.docker.com/linux/ubuntu/gpg      
+       install_python_debian: true
+     
+    - name: Refresh APT cache after adding Docker repository
+      ansible.builtin.apt:
+       update_cache: true
+       cache_valid_time: 0
+
+    - name: install Docker Engine and the Compose plugin
+      ansible.builtin.apt:
+       name: 
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+       state: present
+
+    - name: start docker daemon and enabled on reboot
+      ansible.builtin.service:
+       name: docker
+       state: started
+       enabled: true
+
+    - name: clone homelab repo
+      ansible.builtin.git:
+        repo: https://github.com/viper6z/homelab.git
+        dest: /home/ubuntu/homelab
+        version: main
+        update: true
+
+    - name: docker compose up
+      community.docker.docker_compose_v2:
+       project_src: homelab
+       build: always
+       remove_orphans: true
+       state: present
+
+
+
+
+
+    
+       
+       
+
