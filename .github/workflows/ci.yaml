@@ -29,4 +29,21 @@ jobs:
       - name: terraform validate
         run: terraform validate
 
+  ansible:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run: 
+        working-directory: ansible
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v7
+
+      - name: install ansible
+        run: python3 -m pip install ansible-core
+
+      - name: ansible syntax check
+        run: ansible-playbook -i inventory.ini playbook.yaml --syntax-check
+
 
