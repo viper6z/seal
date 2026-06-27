@@ -12,7 +12,6 @@ terraform {
 
 provider "aws" {
   region  = "eu-north-1"
-  profile = "homelab-terraform"
 }
 
 data "aws_ami" "ubuntu" {
