@@ -1,16 +1,16 @@
-# Terraform local provider/plugin cache
-terraform/.terraform/
+# Terraform generated provider and module files
+.terraform/
 
 # Local Terraform state
-terraform/*.tfstate
-terraform/*.tfstate.*
+*.tfstate
+*.tfstate.*
 
 # Terraform crash logs
-terraform/crash.log
-terraform/crash.*.log
+crash.log
+crash.*.log
 
 # Variable files may contain secrets
-terraform/*.tfvars
-terraform/*.tfvars.json
+*.tfvars
+*.tfvars.json
 
 .env

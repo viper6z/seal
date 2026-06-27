@@ -1,23 +1,23 @@
-A. Host bootstrap only
-Install Docker, enable it, create directories/users, verify the machine is ready. You still deploy Compose manually at first.
+[ ] Create bootstrap Terraform for S3 state bucket
+[ ] Migrate current local state to S3
+[ ] Verify local terraform plan reports no unexpected changes
 
-Smallest learning step
-Clear Terraform/Ansible boundary
-Does not yet give one-command app deployment
+[ ] Create one broad CI workflow
+    - Terraform validation
+    - Ansible validation
+    - Compose validation/build
+    - Python checks
 
-B. Host bootstrap + Compose deployment
-Ansible configures Docker, gets the repo or files onto the VM, creates needed configuration, and runs Compose.
+[ ] Choose and build app deployment transport
+    - GitHub Actions → Ansible → EC2
+    - deploy Python/Compose changes automatically
 
-Produces the first genuinely reproducible lab deployment
-Introduces app-deployment decisions immediately
+[ ] Add Terraform plan/apply workflow
+    - remote state
+    - AWS authentication
+    - approval before apply
 
-C. Full deployment automation from CI
-GitHub Actions runs Terraform/Ansible after a merge.
-
-Valuable eventual milestone
-Adds secrets, SSH access, runner permissions, and deployment safety too early unless the manual path works first
-
-
+[ ] Later: Terraform-created VM automatically triggers Ansible bootstrap
 
 
 
