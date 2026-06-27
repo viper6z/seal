@@ -1,7 +1,32 @@
 name: continuous integration
-on: 
- push:
-    - main 
+on:
+  pull_request:
+    branches:
+      - main 
+
 
 jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v7
+      
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: terraform fmt
+        run: terraform fmt -check
+
+      - name: terraform init
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        run: terraform validate
+
 
