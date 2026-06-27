@@ -988,6 +988,148 @@ Later deployment automation
 → eventually build and publish container images through a registry
 ```
 
+**Entry 11**
+
+Today I moved the main Terraform state for the homelab from my local WSL filesystem into an S3 backend.
+
+Before this, Terraform state only existed locally:
+
+```text
+WSL machine
+→ terraform.tfstate
+```
+
+That worked while I was the only machine running Terraform, but it meant the state was tied to one filesystem.
+
+The goal of this phase was:
+
+```text
+local Terraform state
+→ private, versioned S3 state
+→ same Terraform workflow from WSL
+→ ready for future shared use from GitHub Actions
+```
+
+I first created a separate Terraform bootstrap root under:
+
+```text
+terraform/bootstrap/
+```
+
+This exists because Terraform needs the S3 bucket before the main Terraform configuration can use it as its backend.
+
+The bootstrap configuration creates:
+
+```text
+S3 bucket
+→ versioning enabled
+→ Block Public Access enabled
+→ normal S3-managed encryption
+```
+
+The bootstrap root keeps its own state locally for now.
+
+The main Terraform root does not manage the bucket that stores its own state. Instead, it has a backend configuration that points to the already-created bucket.
+
+The main backend is configured with:
+
+```text
+S3 bucket
+→ homelab-tfstate-bucket-1337
+
+state object path
+→ homelab/main/terraform.tfstate
+
+region
+→ eu-north-1
+
+state locking
+→ S3 lockfile enabled
+```
+
+The state object path is called the S3 key. It is the destination path inside the bucket where Terraform stores the state file.
+
+Before migrating, I copied my local state to a separate backup directory outside the Git repository.
+
+I then ran:
+
+```bash
+terraform init -migrate-state
+```
+
+Terraform detected that the previous local backend already contained state, while the S3 backend was empty.
+
+It asked whether I wanted to copy the existing state into S3.
+
+After confirming, Terraform migrated the state and initialized the main Terraform root to use S3 going forward.
+
+The flow is now:
+
+```text
+Terraform configuration
+→ backend.tf points at S3
+
+terraform init
+→ reads backend configuration
+→ reads and writes state in S3
+
+terraform plan / apply
+→ uses the remote S3 state
+```
+
+I verified the state object was visible in the S3 bucket through AWS.
+
+I then ran:
+
+```bash
+terraform plan
+```
+
+Terraform refreshed the existing VPC, subnet, security group, route table, key pair, and EC2 instance from AWS.
+
+The result was:
+
+```text
+No changes. Your infrastructure matches the configuration.
+```
+
+This confirmed that Terraform successfully read the migrated state from S3 and still matched it to the real AWS infrastructure.
+
+The local `terraform.tfstate` files still exist on my WSL machine, but they are now old local snapshots rather than the active source of truth.
+
+The active state location is now:
+
+```text
+S3 bucket
+→ homelab-tfstate-bucket-1337
+
+S3 key
+→ homelab/main/terraform.tfstate
+```
+
+This completes the Terraform remote-state milestone.
+
+The current deployment flow is now:
+
+```text
+Git repository
+→ Terraform configuration
+
+Terraform bootstrap
+→ creates protected S3 state bucket
+
+Terraform main root
+→ creates AWS VPC and EC2 infrastructure
+→ stores state in S3
+
+Ansible
+→ configures the VM
+→ deploys the Docker Compose stack
+```
+
+The next phase is GitHub Actions validation for Terraform and Ansible changes. Later, GitHub Actions can use this same remote state safely when I decide to automate real Terraform plans and applies.
+
+
 
 
 
