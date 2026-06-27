@@ -633,5 +633,361 @@ This is not a normal network ping. It means Ansible successfully connected to th
 
 Once that works, the first Ansible connectivity milestone is complete. After that I can start writing playbooks to make the VM into a reproducible Docker host.
 
+I loaded my SSH private key into `ssh-agent` locally and tested the inventory connection with Ansible’s ping module.
+
+```bash
+ansible -i inventory.ini homelab -m ping
+```
+
+The result was:
+
+```text
+app_server | SUCCESS => {
+    "ping": "pong"
+}
+```
+
+This confirmed the first Ansible milestone:
+
+```text
+WSL Ansible controller
+→ SSH authentication with my existing EC2 key
+→ connection to the EC2 VM as ubuntu
+→ Ansible module executed successfully on the VM
+```
+
+Ansible also printed a warning about discovering Python at `/usr/bin/python3.14`.
+
+This is not an error. Ansible needs Python on the managed host to run most modules. It found the current Python interpreter automatically, and the warning only means that a future Python installation could cause Ansible to discover a different one. For this lab, I left the default behavior unchanged.
+
+After proving connectivity, I created my first playbook:
+
+```text
+ansible/playbook.yaml
+```
+
+A playbook describes the desired state of the managed host.
+
+The basic hierarchy is:
+
+```text
+playbook
+→ play
+→ tasks
+→ Ansible modules
+```
+
+My first play targets the `homelab` inventory group and uses:
+
+```yaml
+become: true
+```
+
+This means Ansible connects as the normal `ubuntu` user, then uses `sudo` when a task needs root permissions.
+
+This is needed for system-level work such as:
+
+```text
+installing APT packages
+adding package repositories
+writing files under /etc
+managing Docker through systemd
+```
+
+My first task ensured Git was installed:
+
+```text
+desired state
+→ Git is present on the VM
+```
+
+The task reported `ok` rather than `changed`, which showed that Git was already installed in the Ubuntu image.
+
+This was my first practical example of Ansible’s idempotent model.
+
+```text
+Ansible does not blindly run installation commands every time.
+
+Instead, it checks:
+“Is the desired state already true?”
+
+If yes:
+→ ok
+
+If not:
+→ changed
+```
+
+I then used Ansible to configure Docker from Docker’s official Ubuntu APT repository.
+
+The intended Docker setup sequence became:
+
+```text
+ensure prerequisite packages are installed
+→ add Docker’s official APT repository
+→ refresh APT package metadata
+→ install Docker Engine and Compose plugin
+→ ensure Docker starts now and after reboot
+```
+
+I used the `ansible.builtin.deb822_repository` module for Docker’s repository instead of translating Docker’s manual shell commands literally.
+
+This allowed the repository task itself to manage both:
+
+```text
+Docker package source
+→ https://download.docker.com/linux/ubuntu
+
+Docker signing key
+→ downloaded and managed through the repository definition
+```
+
+The repository uses an Ansible fact:
+
+```yaml
+suites: "{{ ansible_distribution_release }}"
+```
+
+This variable comes from Ansible’s automatic fact gathering step.
+
+For this VM, Ansible discovers the Ubuntu release codename and inserts it into the repository configuration instead of hardcoding a release such as `noble` or `resolute`.
+
+While installing Docker, I hit a useful architecture problem.
+
+At first, I configured the Docker repository for `arm64`. APT could then see Docker ARM packages, but it could not install their dependencies because the actual VM was using the AMD64 package architecture.
+
+The useful checks were:
+
+```bash
+dpkg-query -W libc6
+apt-config dump
+```
+
+They showed:
+
+```text
+libc6:amd64
+APT::Architecture "amd64";
+```
+
+This clarified an important naming detail:
+
+```text
+amd64
+→ Debian and Ubuntu name for normal 64-bit x86 servers
+
+It does not mean the server necessarily uses an AMD CPU.
+It can also be an Intel x86-64 CPU.
+```
+
+I corrected the Docker repository architecture to:
+
+```text
+amd64
+```
+
+After that, Ansible successfully installed:
+
+```text
+docker-ce
+docker-ce-cli
+containerd.io
+docker-buildx-plugin
+docker-compose-plugin
+```
+
+The Compose plugin is important because it provides the modern command:
+
+```bash
+docker compose ...
+```
+
+rather than the older standalone `docker-compose` command.
+
+I then added a service task to ensure Docker is both running now and automatically starts after a VM reboot.
+
+```text
+state: started
+→ Docker is running now
+
+enabled: true
+→ Docker starts automatically when the VM boots
+```
+
+Once Docker was installed, the next task was deploying the repository.
+
+At first I cloned the repository as root under:
+
+```text
+/root/homelab
+```
+
+This worked, but it was inconvenient because I normally SSH into the VM as the `ubuntu` user.
+
+I changed the Git task so that only this task opts out of the play-level root escalation:
+
+```text
+become: false
+```
+
+The repository now lives at:
+
+```text
+/home/ubuntu/homelab
+```
+
+and is owned by the `ubuntu` user.
+
+The Git task is responsible for both first-time cloning and future updates:
+
+```text
+first Ansible run
+→ clone repository
+
+later Ansible runs
+→ fetch and update the checkout from main
+```
+
+The deployment path is explicitly set to the repository directory:
+
+```text
+/home/ubuntu/homelab
+```
+
+This means the server has a predictable location for the Compose project rather than depending on whichever directory Ansible happens to use.
+
+For the Compose deployment itself, I used the `community.docker.docker_compose_v2` module.
+
+The desired state is:
+
+```text
+project source
+→ /home/ubuntu/homelab
+
+build changed images
+→ always
+
+remove services no longer declared in Compose
+→ remove_orphans: true
+
+ensure declared services exist and are running
+→ state: present
+```
+
+I deliberately did not use `docker compose down` before every deployment.
+
+```text
+docker compose up -d --build --remove-orphans
+```
+
+is a better normal deployment behavior because it rebuilds or recreates only what changed and removes old orphaned containers without intentionally stopping the whole stack first.
+
+After Ansible ran the Compose deployment, I verified the stack from the VM:
+
+```bash
+sudo docker compose ps
+```
+
+The result showed all current services running:
+
+```text
+homelab-api
+nginx
+tcp-service
+toolbox
+udp-service
+```
+
+Nginx was bound to port 80 on the VM:
+
+```text
+0.0.0.0:80->80/tcp
+```
+
+I then tested the reverse-proxy path locally on the VM:
+
+```bash
+curl -i http://localhost/
+```
+
+The response was:
+
+```text
+HTTP/1.1 200 OK
+Server: nginx/1.30.3
+```
+
+This confirms:
+
+```text
+localhost:80
+→ Nginx container
+
+Nginx
+→ successfully serves the configured application response
+```
+
+The service is intentionally not publicly reachable yet.
+
+My AWS security group currently allows inbound SSH on port 22 only.
+
+So the current state is:
+
+```text
+public internet
+→ blocked from port 80 by AWS security group
+
+inside the VM
+→ Nginx and the Compose stack are working correctly
+```
+
+When I am ready to expose the HTTP service publicly, I should add an inbound TCP port 80 rule through Terraform rather than manually changing AWS settings in the console.
+
+The Ansible deployment milestone is now complete.
+
+```text
+Terraform
+→ creates the AWS infrastructure
+
+Ansible
+→ installs Docker
+→ configures Docker’s package repository
+→ enables the Docker service
+→ clones and updates the repository
+→ starts the Compose stack
+
+Docker Compose
+→ builds and runs the application containers
+
+Nginx
+→ serves the internal HTTP entry point on port 80
+```
+
+The resulting deployment flow is now:
+
+```text
+Git repository
+→ Terraform creates VM
+→ Ansible configures VM
+→ Ansible deploys repository
+→ Docker Compose runs services
+→ Nginx serves the application internally
+```
+
+The next likely milestones are:
+
+```text
+Terraform
+→ allow inbound HTTP on port 80 when intentionally ready
+
+GitHub Actions
+→ validate Terraform and Ansible changes on pushes
+
+Later deployment automation
+→ decide how GitHub Actions should trigger an Ansible deployment
+→ eventually build and publish container images through a registry
+```
+
+
 
 
