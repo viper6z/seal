@@ -11,7 +11,8 @@ module "github-oidc-provider" {
   role_name = "homelab_cd_terraform"
 
   repositories = [
-    "viper6z/homelab:ref:refs/heads/main"
+    "viper6z/homelab:pull_request",
+    "viper6z/homelab:environment:production",
   ]
 
   oidc_role_attach_policies = [
