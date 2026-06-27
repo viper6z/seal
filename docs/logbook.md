@@ -1129,6 +1129,52 @@ Ansible
 
 The next phase is GitHub Actions validation for Terraform and Ansible changes. Later, GitHub Actions can use this same remote state safely when I decide to automate real Terraform plans and applies.
 
+**Entry 12** Today I made the Terraform bootstrap code for GitHub Actions OIDC authentication to AWS.
+
+The problem is that later GitHub Actions needs to run Terraform against AWS, but I do not want to store a permanent AWS access key as a GitHub secret.
+
+The bootstrap Terraform now creates:
+
+```text
+GitHub OIDC provider
+→ AWS can verify tokens issued by GitHub Actions
+
+IAM role: homelab_cd_terraform
+→ the AWS identity GitHub Actions will assume
+
+IAM policy: homelab-terraform-cd
+→ gives the role permissions to manage EC2 resources
+→ gives narrow access to the exact S3 Terraform state and lock objects
+```
+
+The role trust policy is restricted to:
+
+```text
+repo:viper6z/homelab:ref:refs/heads/main
+```
+
+This means a workflow running from the `main` branch of this repository can request a short lived GitHub OIDC token. AWS verifies the token, then gives the workflow temporary credentials for `homelab_cd_terraform`.
+
+The resulting future flow will be:
+
+```text
+GitHub Actions on main
+→ GitHub OIDC token
+→ AWS STS verifies token and trust policy
+→ temporary credentials for homelab_cd_terraform
+→ Terraform can read S3 state and manage EC2 infrastructure
+```
+
+I applied the bootstrap stack locally using my existing `homelab-terraform` AWS profile. It created the OIDC provider, IAM role, IAM policy, and policy attachment.
+
+The role ARN is:
+
+```text
+arn:aws:iam::127372371185:role/homelab_cd_terraform
+```
+
+The next step is still CI first: GitHub Actions should run Terraform formatting and validation on pull requests without AWS credentials. The OIDC role will be used later for the CD workflow on pushes to `main`.
+
 
 
 
