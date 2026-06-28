@@ -32,6 +32,9 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
   key_name               = aws_key_pair.homelab.key_name
 
+  user_data                   = file("${path.module}/cloud-init.yaml")
+  user_data_replace_on_change = true
+
   tags = {
     Name = "oskar-terraform-server"
   }
