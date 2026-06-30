@@ -21,13 +21,13 @@ resource "aws_iam_role" "ssm_role" {
 
 
 resource "aws_iam_role_policy_attachment" "attach_ssm_policy_to_role" {
-  role       = aws_iam_role.role.name
+  role       = aws_iam_role.ssm_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "ec2_ssm_profile" {
   name = "ssm_profile"
-  role = aws_iam_role.role.name
+  role = aws_iam_role.ssm_role.name
 }
 
 
