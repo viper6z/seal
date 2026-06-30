@@ -1208,6 +1208,26 @@ dev branch
 ```
 
 
+**Entry 14**
+
+Today I started refactoring the deployment flow away from Ansible.
+
+Ansible was useful for understanding configuration management and idempotency, but it does not really justify itself for this project anymore. The VM is just a small Docker host, so the first boot machine setup belongs in cloud-init. Later workload updates will come from GitHub Actions through AWS Systems Manager instead.
+
+I started the SSM IAM setup in the Terraform bootstrap root.
+
+First I created an IAM role called `ssm_role_ec2`. Its trust policy allows the EC2 service to assume the role, and it has AWS's `AmazonSSMManagedInstanceCore` policy attached. This gives the SSM Agent on the VM the permissions it needs to authenticate to Systems Manager.
+
+I then created an instance profile called `ssm_profile` which contains the role. The profile is the thing that will later be attached to the EC2 VM.
+
+I also updated the existing GitHub Actions OIDC role. It can now:
+
+```text
+iam:GetInstanceProfile
+→ read ssm_profile
+
+iam:PassRole
+→ allow the runner to attach ssm_role_ec2 to EC2 only
 
 
 
