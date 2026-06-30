@@ -47,6 +47,21 @@ data "aws_iam_policy_document" "cd_identity" {
     ]
     resources = ["arn:aws:s3:::homelab-tfstate-bucket-1337/homelab/main/terraform.tfstate.tflock"]
   }
+
+  statement {
+    actions = [
+      ""
+    ]
+    resources = ["aws_iam_role.ssm_role.arn"]
+  }
+
+  statement {
+    actions = [
+      ""
+    ]
+    resources = ["aws_iam_instance_profile.ec2_ssm_profile.arn"]
+  }
+
 }
 
 resource "aws_iam_policy" "cd_identity" {
