@@ -75,4 +75,8 @@ jobs:
 
       - name: send deploy command through SSM 
         run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Role,Values=seal-host" \
+            --parameters 'commands=["pwd","docker --version"]'
 
