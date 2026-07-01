@@ -34,7 +34,7 @@ resource "aws_instance" "app_server" {
 
   user_data                   = file("${path.module}/cloud-init.yaml")
   user_data_replace_on_change = true
-
+  iam_instance_profile        = data.aws_iam_instance_profile.ec2_ssm.name #instance profile for ssm
   tags = {
     Name = "oskar-terraform-server"
   }
@@ -44,3 +44,9 @@ resource "aws_key_pair" "homelab" {
   key_name   = "homelab-ec2"
   public_key = file("${path.module}/keys/homelab-ec2.pub")
 }
+
+data "aws_iam_instance_profile" "ec2_ssm" { #the instance profile we created in bootstrap
+  name = "ssm_profile"
+}
+
+

@@ -54,7 +54,7 @@ data "aws_iam_policy_document" "cd_identity" {
     ]
     resources = [aws_iam_role.ssm_role.arn]
 
-    
+
     condition {
       test     = "StringEquals"
       variable = "iam:PassedToService"
