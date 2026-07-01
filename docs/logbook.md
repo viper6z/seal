@@ -1238,3 +1238,4 @@ Next up is finishing the pipeline with our new ssm plumbing. Now we can do ssm r
 
 Ive added some new permissions to the github_oidc role, allowing it to send commands and read output from the vm through SSM, although ive realized maybe later i should switch to a PR/Prod role split, since the current layout lets github actions run shell command at CI time. 
 
+Tested sending some basic commands through SSM in the cd, they didnt get denied, but didnt reach any host either, but i think its a propagation issue because this was the same ID that the role seal_host got applied to the VM which is the mechanism in which my SSM commands target vms. 
