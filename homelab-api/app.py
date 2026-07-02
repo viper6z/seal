@@ -22,6 +22,7 @@ def uptime():
 def health():
     return jsonify({
         "status" : "healthy"
+        "ci/cd" : "tested"
     }), 200
 
 
