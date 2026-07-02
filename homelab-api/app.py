@@ -21,7 +21,7 @@ def uptime():
 @app.route("/health")
 def health():
     return jsonify({
-        "status" : "healthy"
+        "status" : "healthy",
         "ci/cd" : "tested"
     }), 200
 
