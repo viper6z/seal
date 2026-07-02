@@ -89,7 +89,19 @@ jobs:
             aws ssm send-command \
               --document-name "AWS-RunShellScript" \
               --instance-ids "$INSTANCE_ID" \
-              --parameters 'commands=["pwd","docker --version"]' \
+              --parameters '{
+                  "commands": [
+                    "set -e",
+                    "if [ -d /opt/seal/.git ]; then",
+                    "  cd /opt/seal",
+                    "  git pull --ff-only",
+                    "else",
+                    "  git clone https://github.com/viper6z/homelab.git /opt/seal",
+                    "fi",
+                    "cd /opt/seal",
+                    "docker compose up -d --build --remove-orphans"
+                  ]
+                }' \
               --query 'Command.CommandId' \
               --output text
             )
@@ -97,7 +109,8 @@ jobs:
           echo "Target instance: $INSTANCE_ID"
           echo "SSM command: $COMMAND_ID"
 
-          set +e #for now, dont exit if we get error 
+          set +e 
+          #for now, dont exit if we get error 
           #wait until command is executed 
           aws ssm wait command-executed \
             --command-id "$COMMAND_ID" \
@@ -113,4 +126,5 @@ jobs:
             --query '{Status:Status,ExitCode:ResponseCode,Stdout:StandardOutputContent,Stderr:StandardErrorContent}' \
             --output json
 
-          exit "$WAIT_EXIT_CODE" #then we exit if command didnt execute 
+          exit "$WAIT_EXIT_CODE" #then we exit if command didnt execute
+
