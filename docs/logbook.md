@@ -1239,3 +1239,42 @@ Next up is finishing the pipeline with our new ssm plumbing. Now we can do ssm r
 Ive added some new permissions to the github_oidc role, allowing it to send commands and read output from the vm through SSM, although ive realized maybe later i should switch to a PR/Prod role split, since the current layout lets github actions run shell command at CI time. 
 
 Tested sending some basic commands through SSM in the cd, they didnt get denied, but didnt reach any host either, but i think its a propagation issue because this was the same ID that the role seal_host got applied to the VM which is the mechanism in which my SSM commands target vms. 
+
+Actually it wasnt a propagation issue rather it was because github actions didnt wait for the time it takes for the response to reach, confirmed in the console that the message succeeded. with the output: 
+
+/var/snap/amazon-ssm-agent/13349
+
+Docker version 29.6.1, build 8900f1d
+
+Apparently, when we send commands through SSM in github actions, we need to capture the CommandId and the InstanceId in order to be able to get information on the outputs and if it succeeded etc.
+this could be compared to going up to order at the restaurant where our order is our sendcommand, and our number we get from the cashier to get our food is the commandid and instanceid.
+
+Also added some bash stuff so the workflow doesnt exit if the command doesnt execute rather it waits until we have queried the command invocation for info 
+
+After that I replaced the test commands with the actual first deployment logic.
+
+The VM now checks if `/opt/seal/.git` exists.
+
+If it does not exist, it clones the repository directly into `/opt/seal`.
+
+If it already exists, it runs `git pull --ff-only` so it only updates if the VM checkout has not been manually changed or diverged.
+
+After either path it runs:
+
+```text
+docker compose up -d --build --remove-orphans
+
+I added set -e so the deployment stops immediately if Git or Docker Compose fails instead of continuing and pretending the deploy worked.
+
+The first real deploy succeeded. GitHub Actions found the VM, sent the SSM command, the VM cloned the repository into /opt/seal, Docker pulled and built the images, and Compose started the stack.
+
+GitHub Actions
+→ SSM
+→ git clone / git pull
+→ docker compose up
+→ running workload
+
+This means the Ansible deployment layer is now effectively gone.
+
+Cloud-init handles the first boot Docker host setup, while SSM handles actual workload deployments on the existing VM.
+
