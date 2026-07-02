@@ -1299,3 +1299,39 @@ This means the Ansible deployment layer is now effectively gone.
 
 Cloud-init handles the first boot Docker host setup, while SSM handles actual workload deployments on the existing VM.
 
+**Entry 16**
+
+Today I finished testing the normal CI/CD update path, not just the first deploy clone path.
+
+The goal of this pipeline is that `main` is the intended state of the system. Instead of SSHing into the VM manually to pull changes and rebuild the Compose stack, a merged PR should make AWS converge toward what is in the repository.
+
+I made a small application-only change to the `/health` endpoint:
+
+```json
+{"ci/cd":"tested","status":"healthy"}
+
+The PR went through CI first, which validates the Terraform and Docker Compose layers. After merge, CD ran Terraform plan, waited for production approval, applied Terraform, found the VM through the Role=seal-host tag, and sent the deployment command through SSM.
+
+This time /opt/seal already contained the repository, so the VM used:
+
+git pull --ff-only
+→ docker compose up -d --build --remove-orphans
+
+I then verified from the VM that all Compose services were up and that Nginx returned:
+
+HTTP/1.1 200 OK
+{"ci/cd":"tested","status":"healthy"}
+
+This proves the normal later deployment path works:
+
+PR
+→ CI validation
+→ merge to main
+→ GitHub Actions OIDC
+→ Terraform apply
+→ SSM
+→ git pull
+→ Docker Compose rebuild
+→ updated running workload
+
+For now, a bad deployment can be reverted through Git by merging a revert PR, which lets the same pipeline reconcile the VM back toward the earlier working code.
