@@ -1350,3 +1350,5 @@ I had to make nginx reload its config in the CD pipeline. So i added the command
 I could use docker cp, which supports copying a host file into the running container. But i want a cleaner way that just makes nginx use the new file instead of updating its stale file.
 
 What i am going to do is instead of mounting a specific file im going to mount the config directory. So that the path will resolve to the current one very time.
+
+Put the nginx config in its own sub directory and mounted that in the compose file and now it works.
