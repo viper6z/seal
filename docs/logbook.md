@@ -1314,3 +1314,18 @@ PR
 → updated running workload
 
 For now, a bad deployment can be reverted through Git by merging a revert PR, which lets the same pipeline reconcile the VM back toward the earlier working code.
+
+**Entry 17** 
+Today im starting work on nginx and adding a pulic facing http ingress to my lab. This of course requires hardening the security and what is reachable.
+
+Im starting with reconfiguring my nginx.conf file. sort of like an acl type of mindset where i explicitly write out the exact requests that will be valid and where to point them and then i have a catchall at the bottom that returns 404. 
+
+The old config had a broad location / block which proxied every request path to the API. That meant any current or future Flask route would become public once port 80 was opened.
+
+I changed this to exact Nginx locations for the harmless routes I intend to expose: /, /health, and /time. Anything else now hits the catchall and returns a 404 directly from Nginx without ever reaching Flask. This also makes it so that any new api route that's created is by default not reachable publically.
+
+I had to make nginx reload its config in the CD pipeline. So i added the command for that but it still didnt work. The reload command reloads the configuration file that is runnign INSIDE the container i.e the old one. So my changes to the file, even if they reach the VM doesnt reach the container. So i need to figure out a way to get the changes into the running container.
+
+I could use docker cp, which supports copying a host file into the running container. But i want a cleaner way that just makes nginx use the new file instead of updating its stale file.
+
+What i am going to do is instead of mounting a specific file im going to mount the config directory. So that the path will resolve to the current one very time.
