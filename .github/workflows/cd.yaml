@@ -96,7 +96,7 @@ jobs:
                     "  cd /opt/seal",
                     "  git pull --ff-only",
                     "else",
-                    "  git clone https://github.com/viper6z/homelab.git /opt/seal",
+                    "  git clone https://github.com/viper6z/seal.git /opt/seal",
                     "fi",
                     "cd /opt/seal",
                     "docker compose up -d --build --remove-orphans",
