@@ -19,7 +19,7 @@ resource "aws_instance" "app_server" {
   ami                    = "ami-0c851798b239aa71a"
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.main.id
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids = [aws_security_group.seal_host.id]
   key_name               = aws_key_pair.homelab.key_name
 
   user_data                   = file("${path.module}/cloud-init.yaml")

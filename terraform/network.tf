@@ -46,26 +46,31 @@ resource "aws_route_table_association" "rta" {
   route_table_id = aws_route_table.rt.id
 }
 
-resource "aws_security_group" "allow_ssh" {
-  name        = "allow-ssh"
-  description = "Allow incoming tcp from my(oskar) host and all outbound"
+moved {
+  from = aws_security_group.allow_ssh
+  to   = aws_security_group.seal_host
+}
+
+resource "aws_security_group" "seal_host" {
+  name        = "seal_host"
+  description = "Allow incoming tcp on port 80 and all outbound"
   vpc_id      = aws_vpc.main.id
 
   tags = {
-    Name = "homelab-allow-ssh"
+    Name = "homelab-seal-host"
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
-  security_group_id = aws_security_group.allow_ssh.id
-  cidr_ipv4         = "83.253.96.176/32"
-  from_port         = 22
+resource "aws_vpc_security_group_ingress_rule" "allow_tcp_80" {
+  security_group_id = aws_security_group.seal_host.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 80
   ip_protocol       = "tcp"
-  to_port           = 22
+  to_port           = 80
 }
 
 resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
-  security_group_id = aws_security_group.allow_ssh.id
+  security_group_id = aws_security_group.seal_host.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1" # semantically equivalent to all ports
 }
