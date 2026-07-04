@@ -1378,3 +1378,5 @@ im going to add the lifecycle create before destroy = true so that we make the n
 With the new security group, i can reach my VM through my browser with http! and i can go through nginx to reach my exposed api endpoints!
 http://13.51.193.197/health returns the json response
 http://13.51.193.197/random (not a real endpoint/exposed) returns nginx 404, so it doesnt even reach the API. 
+
+With this i have officially touched on all the points in the roadmap.sh beginner devops roadmap and i will now be pausing this lab and do a separate kubernetes lab.
