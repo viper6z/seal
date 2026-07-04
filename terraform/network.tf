@@ -56,6 +56,9 @@ resource "aws_security_group" "seal_host" {
   description = "Allow incoming tcp on port 80 and all outbound"
   vpc_id      = aws_vpc.main.id
 
+  lifecycle {
+    create_before_destroy = true
+  }
   tags = {
     Name = "homelab-seal-host"
   }
