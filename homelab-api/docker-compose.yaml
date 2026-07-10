@@ -1,7 +1,7 @@
 services:
   homelab-api:
     # build: .
-    image: ghcr.io/viper6z/homelab-api
+    image: ghcr.io/viper6z/homelab-api:v1
     container_name: homelab-api
     restart: unless-stopped
     networks:
