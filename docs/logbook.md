@@ -1380,3 +1380,14 @@ http://13.51.193.197/health returns the json response
 http://13.51.193.197/random (not a real endpoint/exposed) returns nginx 404, so it doesnt even reach the API. 
 
 With this i have officially touched on all the points in the roadmap.sh beginner devops roadmap and i will now be pausing this lab and do a separate kubernetes lab.
+
+
+Entry 19 Today I came back to Seal to start separating the application artifact from the platform deployment. Before, homelab-api was built directly from its source code by Docker Compose on the Seal host.
+
+I manually built the API as an image, tagged it as ghcr.io/viper6z/homelab-api:v1 and pushed it to GHCR. Then I deleted the local image and ran it again using the GHCR reference. Docker pulled it from the registry and the /health endpoint still worked.
+
+The flow is now proven:
+
+application source → container image → GHCR → pull image → run container
+
+Next step is changing the Compose configuration from build: to image: so Seal can deploy the API without needing its source directory.
