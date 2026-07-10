@@ -1,3 +1,4 @@
+Logbook 
 
 **Entry 1**
 The first part of this project was setting up docker with wsl2 ubuntu integration, and then learning how to set up my containerized services.
