@@ -1,0 +1,4 @@
+name: private-app
+image: ghcr.io/viper6z/private_app:v1
+internal_port: 1337
+exposure_type: internal

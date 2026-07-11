@@ -1392,3 +1392,7 @@ The flow is now proven:
 application source → container image → GHCR → pull image → run container
 
 Next step is changing the Compose configuration from build: to image: so Seal can deploy the API without needing its source directory.
+
+Entry 20 Today I finished integrating the GHCR image into Seal. homelab-api is now pulled as a private versioned image instead of being built from source by Compose. I verified that Compose could authenticate to GHCR, pull the image, start it on the backend network, and that /health still worked through Nginx.
+
+I also drafted the first developer-facing application contract. The developer will provide the service name, image, internal port, exposure type and explicitly allowed public routes. Seal will own the Compose structure, Docker networks, restart policy, Nginx configuration and deny-all fallback. Next step is starting the Go CLI which will validate and render this declaration.§
