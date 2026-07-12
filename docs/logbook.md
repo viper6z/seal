@@ -1396,3 +1396,13 @@ Next step is changing the Compose configuration from build: to image: so Seal ca
 Entry 20 Today I finished integrating the GHCR image into Seal. homelab-api is now pulled as a private versioned image instead of being built from source by Compose. I verified that Compose could authenticate to GHCR, pull the image, start it on the backend network, and that /health still worked through Nginx.
 
 I also drafted the first developer-facing application contract. The developer will provide the service name, image, internal port, exposure type and explicitly allowed public routes. Seal will own the Compose structure, Docker networks, restart policy, Nginx configuration and deny-all fallback. Next step is starting the Go CLI which will validate and render this declaration.§
+
+Entry 21
+
+Started the Go implementation of Seal’s application interface.
+
+Created the Application struct with YAML field mappings, then separated file opening from YAML decoding by having the decoder accept io.Reader. Added strict unknown-field handling and decoded the manifest into a typed Application value with explicit error handling.
+
+Also clarified Go concepts around zero values, pointers, interfaces, methods, package functions, and multiple return values.
+
+The parser now compiles up to the missing CLI entry point. Next step is connecting argument handling, file ownership, decoding, and visible error reporting through main.
