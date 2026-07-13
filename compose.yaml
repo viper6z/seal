@@ -1,6 +1,13 @@
-include:
-  - nginx/compose.yaml
-
+services:
+  nginx:
+    image: nginx:1.30.3-alpine
+    ports:
+      - "80:80"
+    networks:
+      - edge
+      - backend
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d/:ro
 networks:
   edge:
   backend:
