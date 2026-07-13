@@ -1,7 +1,0 @@
-#compose
-services:
-  udp-service: 
-    build: .
-    container_name: udp-service
-    networks:
-      - backend

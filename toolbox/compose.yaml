@@ -1,7 +1,0 @@
-services:
-  toolbox:
-    build: .
-    networks:
-      - backend
-    stdin_open: true
-    tty: true

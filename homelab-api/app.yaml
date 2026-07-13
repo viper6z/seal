@@ -1,9 +1,0 @@
-name: homelab-api
-image: ghcr.io/viper6z/homelab-api:v1
-internal_port: 5000
-exposure_type: public
-allowed_public_routes:
-  - /
-  - /health
-  - /time
-

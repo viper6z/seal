@@ -1,6 +1,0 @@
-services:
-  tcp-service:
-    build: .
-    networks:
-      - backend
- 

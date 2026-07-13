@@ -1,9 +1,5 @@
 include:
-  - homelab-api/docker-compose.yaml
   - nginx/compose.yaml
-  - tcp-service/compose.yaml
-  - udp-service/compose.yaml
-  - toolbox/compose.yaml
 
 networks:
   edge:
