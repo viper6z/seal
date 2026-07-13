@@ -205,3 +205,18 @@ func deploymentPreCheck(application Application, compose Compose) error {
 	}
 	return nil
 }
+
+type Service struct {
+	Image string `yaml:"image"`
+	Networks []string `yaml:"networks"`
+}
+//this function takes an application and uses some of its data to make a service
+func renderService(application Application) (service Service) {
+	service.Image = application.Image
+	service.Networks = []string{"backend"}
+	return service
+}
+
+func encodeService(service Service) error {
+	node := yaml.Node{}
+}
