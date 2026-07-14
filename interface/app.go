@@ -6,6 +6,7 @@ import (
 	"go.yaml.in/yaml/v4"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -53,6 +54,11 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("Temporary Compose file written to: %s\n", tempPath)
+
+		if err := validateCompose(tempPath); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 }
 
@@ -279,4 +285,14 @@ func createNewComposeFile(compose Compose) (path string, err error) {
 		return "", err
 	}
 	return filepointer.Name(), nil
+}
+
+func validateCompose(path string) error {
+	cmd := exec.Command("docker", "compose", "-f", path, "config", "--quiet")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("validation failed: %w %s", err, output)
+		return err
+	}
+	return nil
 }
