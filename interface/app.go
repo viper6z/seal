@@ -39,6 +39,20 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Precheck failed: %v\n", err)
 			os.Exit(1)
 		}
+
+		node, err := encodeService(renderService(application))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode service: %v\n", err)
+			os.Exit(1)
+		}
+
+		compose = addServiceToCompose(node, application, compose)
+		tempPath, err := createNewComposeFile(compose)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to create temp file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Temporary Compose file written to: %s\n", tempPath)
 	}
 }
 
@@ -195,6 +209,9 @@ func loadCompose() (Compose, error) {
 
 // now when we have both the application struct and the compose struct, we will make sure the service name is not already in use
 func deploymentPreCheck(application Application, compose Compose) error {
+	if compose.Services == nil {
+		return errors.New("no services mapping exists in compose.yaml")
+	}
 	_, ok := compose.Services[application.Name]
 	if ok {
 		return errors.New("service name already taken")
@@ -207,16 +224,59 @@ func deploymentPreCheck(application Application, compose Compose) error {
 }
 
 type Service struct {
-	Image string `yaml:"image"`
+	Image    string   `yaml:"image"`
 	Networks []string `yaml:"networks"`
 }
-//this function takes an application and uses some of its data to make a service
+
+// this function takes an application and uses some of its data to make a service
 func renderService(application Application) (service Service) {
 	service.Image = application.Image
 	service.Networks = []string{"backend"}
 	return service
 }
 
-func encodeService(service Service) error {
-	node := yaml.Node{}
+func encodeService(service Service) (node yaml.Node, err error) {
+	err = node.Encode(service)
+	if err != nil {
+		return yaml.Node{}, err
+	}
+	return node, nil
+}
+
+func addServiceToCompose(node yaml.Node, application Application, compose Compose) Compose {
+	compose.Services[application.Name] = node
+	return compose
+}
+
+func encodeComposeYAML(compose Compose, writer io.Writer) error {
+	encoder := yaml.NewEncoder(writer)
+	err := encoder.Encode(compose)
+	if err != nil {
+		return err
+	}
+	err = encoder.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createNewComposeFile(compose Compose) (path string, err error) {
+	filepointer, err := os.CreateTemp(".", "newcompose.yaml")
+	if err != nil {
+		return "", err
+	}
+
+	err = encodeComposeYAML(compose, filepointer)
+	if err != nil {
+		filepointer.Close()
+		os.Remove(filepointer.Name())
+		return "", err
+	}
+	err = filepointer.Close()
+	if err != nil {
+		os.Remove(filepointer.Name())
+		return "", err
+	}
+	return filepointer.Name(), nil
 }
