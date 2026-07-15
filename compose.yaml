@@ -1,8 +1,4 @@
 services:
-    homelab-api:
-        image: ghcr.io/viper6z/homelab-api:v1
-        networks:
-            - backend
     nginx:
         image: nginx:1.30.3-alpine
         ports:
