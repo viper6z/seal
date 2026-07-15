@@ -42,3 +42,20 @@ jobs:
       - name: validate compose
         run: docker compose config
 
+  nginx:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v7
+
+      - name: docker compose up 
+        run: docker compose up --wait
+
+      - name: test nginx
+        run: docker compose exec -T nginx nginx -t
+
+      - name: docker compose down
+        run: docker compose down
+        if: ${{ always() }}
+
