@@ -1,0 +1,9 @@
+name: podinfo
+image: ghcr.io/stefanprodan/podinfo:6.14.0
+internal_port: 9898
+exposure_type: public
+allowed_public_routes:
+  - /
+  - /healthz
+  - /readyz
+  - /version

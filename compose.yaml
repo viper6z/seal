@@ -12,6 +12,10 @@ services:
             - backend
         volumes:
             - ./nginx/conf.d:/etc/nginx/conf.d/:ro
+    podinfo:
+        image: ghcr.io/stefanprodan/podinfo:6.14.0
+        networks:
+            - backend
 networks:
     backend:
     edge:
