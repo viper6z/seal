@@ -55,8 +55,19 @@ func main() {
 		}
 		fmt.Printf("Temporary Compose file written to: %s\n", tempPath)
 
-		if err := validateCompose(tempPath); err != nil {
+		if err = validateCompose(tempPath); err != nil {
 			fmt.Fprintln(os.Stderr, err)
+			if removeErr := os.Remove(tempPath); removeErr != nil {
+				fmt.Fprintf(os.Stderr, "Failed to remove temporary file: %s\n", removeErr)
+			}
+			os.Exit(1)
+		}
+
+		if err = replaceCompose(tempPath); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to replace compose: %v\n", err)
+			if removeErr := os.Remove(tempPath); removeErr != nil {
+				fmt.Fprintf(os.Stderr, "Failed to remove temporary file: %s\n", removeErr)
+			}
 			os.Exit(1)
 		}
 	}
@@ -292,6 +303,13 @@ func validateCompose(path string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("validation failed: %w %s", err, output)
+		return err
+	}
+	return nil
+}
+
+func replaceCompose(tempPath string) error {
+	if err := os.Rename(tempPath, "compose.yaml"); err != nil {
 		return err
 	}
 	return nil
