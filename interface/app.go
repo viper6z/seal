@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -72,7 +73,18 @@ func main() {
 		}
 
 		if application.ExposureType == "public" {
-
+			path, err := createTempNginxConf(application)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to create temporary nginx conf: %s\n", err)
+				os.Exit(1)
+			}
+			if err = replaceNginxConf(application, path); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to create real nginx conf: %s\n", err)
+				if removeErr := os.Remove(path); removeErr != nil {
+					fmt.Fprintf(os.Stderr, "failed to remove temporary nginx config: %s\n", removeErr)
+				}
+				os.Exit(1)
+			}
 		}
 	}
 }
@@ -256,7 +268,7 @@ func renderService(application Application) (service Service) {
 	return service
 }
 
-//encodes service to a yaml node
+// encodes service to a yaml node
 func encodeService(service Service) (node yaml.Node, err error) {
 	err = node.Encode(service)
 	if err != nil {
@@ -271,7 +283,7 @@ func addServiceToCompose(node yaml.Node, application Application, compose Compos
 	return compose
 }
 
-//encodes new compose struct to yaml
+// encodes new compose struct to yaml
 func encodeComposeYAML(compose Compose, writer io.Writer) error {
 	encoder := yaml.NewEncoder(writer)
 	err := encoder.Encode(compose)
@@ -284,7 +296,8 @@ func encodeComposeYAML(compose Compose, writer io.Writer) error {
 	}
 	return nil
 }
-//creates new compose file temp
+
+// creates new compose file temp
 func createNewComposeFile(compose Compose) (path string, err error) {
 	filepointer, err := os.CreateTemp(".", "newcompose.yaml")
 	if err != nil {
@@ -304,7 +317,8 @@ func createNewComposeFile(compose Compose) (path string, err error) {
 	}
 	return filepointer.Name(), nil
 }
-//validates temp compose file
+
+// validates temp compose file
 func validateCompose(path string) error {
 	cmd := exec.Command("docker", "compose", "-f", path, "config", "--quiet")
 	output, err := cmd.CombinedOutput()
@@ -314,7 +328,8 @@ func validateCompose(path string) error {
 	}
 	return nil
 }
-//replaces old real compose file with new validated compose file
+
+// replaces old real compose file with new validated compose file
 func replaceCompose(tempPath string) error {
 	if err := os.Rename(tempPath, "compose.yaml"); err != nil {
 		return err
@@ -322,5 +337,40 @@ func replaceCompose(tempPath string) error {
 	return nil
 }
 
-func renderNginxSnippet(application application, writer io.Writer) error {
+func renderNginxSnippet(application Application, writer io.Writer) error {
+	for _, s := range application.AllowedPublicRoutes {
+		_, err := fmt.Fprintf(writer, "location = %s {\n  proxy_pass http://%s:%d;\n}\n\n", s, application.Name, application.InternalPort)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createTempNginxConf(application Application) (path string, err error) {
+	filepointer, err := os.CreateTemp("nginx/conf.d/generated/", "test.conf")
+	if err != nil {
+		return "", err
+	}
+	if err = renderNginxSnippet(application, filepointer); err != nil {
+		filepointer.Close()
+		os.Remove(filepointer.Name())
+		return "", err
+	}
+	if err = filepointer.Close(); err != nil {
+		os.Remove(filepointer.Name())
+		return "", err
+	}
+	return filepointer.Name(), nil
+}
+
+func replaceNginxConf(application Application, tempPath string) error {
+	finalPath := filepath.Join(
+		"nginx/conf.d/generated",
+		application.Name+".conf",
+	)
+	if err := os.Rename(tempPath, finalPath); err != nil {
+		return err
+	}
+	return nil
 }
