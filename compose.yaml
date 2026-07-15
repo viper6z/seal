@@ -1,6 +1,6 @@
 services:
-    new:
-        image: ghcr.io/viper6z/pung
+    homelab-api:
+        image: ghcr.io/viper6z/homelab-api:v1
         networks:
             - backend
     nginx:

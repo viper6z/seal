@@ -70,6 +70,10 @@ func main() {
 			}
 			os.Exit(1)
 		}
+
+		if application.ExposureType == "public" {
+
+		}
 	}
 }
 
@@ -252,6 +256,7 @@ func renderService(application Application) (service Service) {
 	return service
 }
 
+//encodes service to a yaml node
 func encodeService(service Service) (node yaml.Node, err error) {
 	err = node.Encode(service)
 	if err != nil {
@@ -260,11 +265,13 @@ func encodeService(service Service) (node yaml.Node, err error) {
 	return node, nil
 }
 
+// adds the service to the compose struct
 func addServiceToCompose(node yaml.Node, application Application, compose Compose) Compose {
 	compose.Services[application.Name] = node
 	return compose
 }
 
+//encodes new compose struct to yaml
 func encodeComposeYAML(compose Compose, writer io.Writer) error {
 	encoder := yaml.NewEncoder(writer)
 	err := encoder.Encode(compose)
@@ -277,7 +284,7 @@ func encodeComposeYAML(compose Compose, writer io.Writer) error {
 	}
 	return nil
 }
-
+//creates new compose file temp
 func createNewComposeFile(compose Compose) (path string, err error) {
 	filepointer, err := os.CreateTemp(".", "newcompose.yaml")
 	if err != nil {
@@ -297,7 +304,7 @@ func createNewComposeFile(compose Compose) (path string, err error) {
 	}
 	return filepointer.Name(), nil
 }
-
+//validates temp compose file
 func validateCompose(path string) error {
 	cmd := exec.Command("docker", "compose", "-f", path, "config", "--quiet")
 	output, err := cmd.CombinedOutput()
@@ -307,10 +314,13 @@ func validateCompose(path string) error {
 	}
 	return nil
 }
-
+//replaces old real compose file with new validated compose file
 func replaceCompose(tempPath string) error {
 	if err := os.Rename(tempPath, "compose.yaml"); err != nil {
 		return err
 	}
 	return nil
+}
+
+func renderNginxSnippet(application application, writer io.Writer) error {
 }
