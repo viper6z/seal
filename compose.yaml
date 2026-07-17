@@ -1,4 +1,5 @@
 services:
+    test:
     nginx:
         image: nginx:1.30.3-alpine
         ports:
