@@ -19,3 +19,5 @@ interface/interface
 interface/seal
 
 .seal/
+agent/sealagent
+agent/seal-agent
