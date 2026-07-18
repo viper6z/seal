@@ -12,7 +12,11 @@ services:
         image: ghcr.io/stefanprodan/podinfo:6.14.0
         networks:
             - backend
-    #agent ownership test
+            #agent ownership test
+    whoami:
+        image: ghcr.io/traefik/whoami:v1.11.0
+        networks:
+            - backend
 networks:
     backend:
     edge:
