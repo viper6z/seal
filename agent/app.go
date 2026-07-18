@@ -579,21 +579,20 @@ func applyRuntime(liveRoot string) error {
 		)
 	}
 
-	reloadCmd := exec.Command(
+	nginxCmd := exec.Command(
 		"docker",
 		"compose",
-		"exec",
-		"-T",
+		"up",
+		"-d",
+		"--force-recreate",
+		"--no-deps",
 		"nginx",
-		"nginx",
-		"-s",
-		"reload",
 	)
-	reloadCmd.Dir = liveRoot
+	nginxCmd.Dir = liveRoot
 
-	if output, err := reloadCmd.CombinedOutput(); err != nil {
+	if output, err := nginxCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf(
-			"reload nginx: %w: %s",
+			"recreate nginx container: %w: %s",
 			err,
 			strings.TrimSpace(string(output)),
 		)
@@ -601,7 +600,6 @@ func applyRuntime(liveRoot string) error {
 
 	return nil
 }
-
 func rollbackPublishedConfigs(liveRoot, backupRoot string) error {
 	return restoreBackup(
 		filepath.Join(liveRoot, "compose.yaml"),
