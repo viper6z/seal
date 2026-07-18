@@ -9,7 +9,7 @@ services:
         volumes:
             - ./nginx/conf.d:/etc/nginx/conf.d/:ro
     podinfo:
-        image: ghcr.io/stefanprodan/podinfo:seal-invalid-test
+        image: ghcr.io/stefanprodan/podinfo:6.14.0
         networks:
             - backend
     # agent reconciliation test
