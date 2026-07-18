@@ -1,43 +1,23 @@
 # Seal
 
-Seal is a small, single-host application platform built as a hands-on cloud and platform-engineering project.
+Seal is a small single-host application platform I built to understand how infrastructure, deployment and reconciliation fit together before moving on to Kubernetes.
 
-It provides a narrow developer interface for deploying containerised applications to one AWS EC2 instance running Docker Compose and Nginx.
+A developer describes an application in YAML. A Go CLI validates the manifest and generates Docker Compose and Nginx configuration. Git stores the desired state, while a Go agent on the EC2 host keeps the running system in sync with `main`.
 
 ```text
-application image in GHCR
-→ Seal YAML manifest
-→ Go CLI validation and config generation
+container image
+→ application manifest
+→ seal deploy
 → pull request
-→ CI validation
-→ merge
+→ CI
+→ merge to main
 → host reconciliation
 → Docker Compose
 → Nginx
 → application
 ```
 
-## Architecture
-
-```text
-GitHub
-├── GitHub Actions
-├── Terraform
-└── application manifests
-
-AWS
-└── EC2
-    ├── Docker
-    ├── Docker Compose
-    ├── Nginx
-    └── application containers
-```
-
-Terraform provisions the AWS infrastructure. Docker Compose defines the services running on the host. Nginx is the public HTTP entry point, while application containers remain private on the backend Docker network.
-
 ## Application interface
-
-Applications are declared through a small YAML manifest:
 
 ```yaml
 name: example-api
@@ -46,29 +26,37 @@ internal_port: 8080
 exposure_type: public
 allowed_public_routes:
   - /
-  - /health
+  - /healthz
 ```
 
-Seal validates the manifest and generates the platform configuration needed to run the application.
+Public applications receive explicitly declared Nginx routes. Internal applications only join the backend Docker network and are not exposed publicly.
 
-Public applications receive explicitly declared Nginx routes. Internal applications join the backend network without being exposed through Nginx.
+## How it works
 
-## Current status
+Terraform creates the AWS network and EC2 instance. Cloud-init installs Docker, clones the repository, builds the agent and installs its systemd service and timer.
 
-The project currently includes:
+The agent runs periodically and treats `compose.yaml` and `nginx/conf.d/` on `origin/main` as desired state. It:
 
-* reproducible AWS infrastructure with Terraform
-* GitHub Actions using AWS OIDC
-* EC2 management through AWS Systems Manager
-* a root Docker Compose stack with separate edge and backend networks
-* Nginx as the only public entry point
-* a Go CLI for manifest validation and Compose generation
-* safe Compose updates using temporary-file validation and atomic replacement
+1. fetches the latest commit;
+2. stages the exact managed configuration;
+3. validates Docker Compose and Nginx;
+4. backs up and publishes the new files;
+5. applies the Compose stack and recreates Nginx;
+6. records the successfully applied commit;
+7. restores the previous configuration if runtime apply fails.
 
-Per-application Nginx generation, Git automation and the host-side reconciliation agent are still under development.
+GitHub Actions validates changes and uses AWS OIDC to run Terraform. Runtime deployment is owned by the host agent rather than pushed through CI.
+
+## Repository layout
+
+- `interface/`: Go CLI for manifest validation and configuration generation
+- `agent/`: host reconciliation agent and systemd units
+- `terraform/`: AWS infrastructure and cloud-init bootstrap
+- `compose.yaml`: desired container runtime
+- `nginx/conf.d/`: base and generated ingress configuration
+- `.github/workflows/`: CI and Terraform deployment
+- `docs/logbook.md`: project build-up and decisions
 
 ## Scope
 
-Seal is intentionally not Kubernetes or a general-purpose production platform. It is a focused learning project for understanding how infrastructure provisioning, configuration generation, CI/CD, container networking, ingress and reconciliation fit together on a single host.
-
-The project build-up and engineering decisions are documented in [`docs/logbook.md`](docs/logbook.md).
+Seal is intentionally not Kubernetes or a production platform. It is a focused learning project for understanding the layers between a developer-facing application definition and a reproducible running service on AWS.
