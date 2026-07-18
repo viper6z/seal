@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Seal host reconciliation periodically
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+Unit=seal-agent.service
+
+[Install]
+WantedBy=timers.target

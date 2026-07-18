@@ -15,6 +15,7 @@ write_files:
       #!/usr/bin/env bash
       set -euo pipefail
 
+      # Install Docker Engine and Docker Compose.
       install -m 0755 -d /etc/apt/keyrings
 
       curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
@@ -44,7 +45,48 @@ write_files:
 
       systemctl enable --now docker
 
-      mkdir -p /opt/seal
+      # Clone the desired state and agent source.
+      rm -rf /opt/seal
+
+      git clone \
+        --branch main \
+        --single-branch \
+        https://github.com/viper6z/seal.git \
+        /opt/seal
+
+      # Build the agent using a temporary Go build container.
+      docker run --rm \
+        --mount type=bind,src=/opt/seal/agent,dst=/src \
+        --workdir /src \
+        --env CGO_ENABLED=0 \
+        golang:1.26.5-alpine \
+        go build -o /src/seal-agent .
+
+      # Install the agent binary.
+      install \
+        -m 0755 \
+        /opt/seal/agent/seal-agent \
+        /usr/local/bin/seal-agent
+
+      rm -f /opt/seal/agent/seal-agent
+
+      # Install the systemd service and timer.
+      install \
+        -m 0644 \
+        /opt/seal/agent/systemd/seal-agent.service \
+        /etc/systemd/system/seal-agent.service
+
+      install \
+        -m 0644 \
+        /opt/seal/agent/systemd/seal-agent.timer \
+        /etc/systemd/system/seal-agent.timer
+
+      systemctl daemon-reload
+      systemctl enable --now seal-agent.timer
+
+      # Perform the first reconciliation immediately instead of waiting
+      # for the timer's first scheduled execution.
+      systemctl start seal-agent.service
 
 runcmd:
   - [bash, /usr/local/sbin/seal-bootstrap]
