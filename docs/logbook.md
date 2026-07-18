@@ -1452,4 +1452,67 @@ Also learned more Go concepts while implementing this, including io.Reader, io.W
 
 Current state: Seal can take a valid application manifest and safely generate a Docker Compose configuration containing the new service without touching the real compose.yaml.
 
-Next step is automating Docker Compose validation from Go. After the temporary file passes validation, Seal can safely rename it over the existing compose.yaml.-
+Next step is automating Docker Compose validation from Go. After the temporary file passes validation, Seal can safely rename it over the existing compose.yaml.
+
+**Entry 23**
+
+I finished the Go application interface and built the host reconciliation agent.
+
+The CLI can now take an application manifest, validate it, generate the Docker Compose service and generate the Nginx configuration for its public routes. It validates the generated Compose configuration before replacing the real files, and the publication uses temporary files and backups so a failed deployment does not leave half-written configuration behind. I also added Go tests around the interface and got them running in CI.
+
+After finishing the interface I started working on the agent that runs on the EC2 host. The managed desired state is:
+
+```text
+compose.yaml
+nginx/conf.d/
+
+The agent fetches origin/main and resolves the exact target commit instead of checking out the branch. It uses git archive to extract only the managed files from that commit into a staging directory.
+
+The staged Compose configuration is checked with:
+
+docker compose config --quiet
+
+The staged Nginx configuration is tested inside a temporary Nginx container. Nginx requires its upstream service names to resolve during nginx -t, so the agent reads all service names from the staged Compose file and adds temporary /etc/hosts entries for them inside the validation container.
+
+Once validation passes, the agent copies the staged files into a candidate directory on the same filesystem as /opt/seal. It moves the current live Compose file and Nginx directory into a backup, then moves the candidate files into the live paths. If any part of publication fails, it restores the old files.
+
+The runtime apply is:
+
+docker compose up -d --remove-orphans
+recreate the Nginx container
+
+I tested rollback by deploying a Compose file with an invalid image tag. The image pull failed, the agent restored the previous files and reapplied the previous runtime successfully.
+
+The agent stores the last successfully reconciled commit in:
+
+/opt/seal/.seal/applied
+
+TARGET is the latest commit on origin/main, while APPLIED is the last commit that passed validation, publication and runtime apply. The state file only advances after the complete deployment succeeds. On a fresh host where the state file does not exist, the first target is reconciled unconditionally.
+
+I added a systemd oneshot service and timer so the agent runs automatically around once per minute. Cloud-init now installs Docker, clones the repository into /opt/seal, builds the Go agent using a temporary Go container, installs the binary under /usr/local/bin, installs the systemd units and starts the first reconciliation.
+
+This also replaces the old deployment step where GitHub Actions sent git pull and docker compose up commands through SSM. GitHub Actions now handles Terraform, while the agent on the host owns runtime reconciliation.
+
+I recreated the infrastructure from nothing and verified the full bootstrap:
+
+Terraform creates fresh EC2 instance
+→ cloud-init installs and configures the host
+→ agent is built and installed
+→ systemd starts the agent
+→ agent fetches main
+→ configuration is staged and validated
+→ Compose and Nginx are published
+→ containers start
+→ APPLIED is recorded
+→ HTTP health check returns 200
+
+During the final test I found a bug with the Nginx bind mount. The agent replaced the whole host nginx/conf.d directory, but the running container was still mounted to the old directory. Reloading Nginx was therefore not enough. I fixed this by force recreating the Nginx container after publication so Docker creates a new bind mount pointing at the new directory.
+
+After recreating the VM again, both of these worked:
+
+curl http://127.0.0.1/healthz
+request from inside Nginx to http://127.0.0.1/healthz
+
+Both returned a healthy response.
+
+The remaining final test is to use the Go CLI to add a completely new public service, merge the generated Compose and Nginx configuration, and verify that the agent deploys it automatically. After that this version of the homelab is finished and I will continue working on my kubeadm lab.
