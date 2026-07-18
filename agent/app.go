@@ -27,13 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if applied == "" {
-		applied, err = currentHeadCommit(repoPath)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "initialize applied commit:", err)
-			os.Exit(1)
-		}
-	}
+	firstRun := applied == ""
 	target, err := fetchTargetCommit(repoPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "fetch target commit:", err)
@@ -43,15 +37,19 @@ func main() {
 	fmt.Println("applied commit:", applied)
 	fmt.Println("target commit:", target)
 
-	if target == applied {
+	if !firstRun && target == applied {
 		fmt.Println("already reconciled")
 		return
 	}
 
-	changed, err := managedPathsChanged(repoPath, target, applied)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "compare managed paths:", err)
-		os.Exit(1)
+	changed := true
+
+	if !firstRun {
+		changed, err = managedPathsChanged(repoPath, target, applied)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "compare managed paths:", err)
+			os.Exit(1)
+		}
 	}
 
 	if !changed {
