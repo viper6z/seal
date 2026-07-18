@@ -1,0 +1,6 @@
+name: whoami
+image: ghcr.io/traefik/whoami:v1.11.0
+internal_port: 80
+exposure_type: public
+allowed_public_routes:
+  - /api
