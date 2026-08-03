@@ -698,3 +698,7 @@ func getTargetBlobs(repoPath string, target string) (map[string]string, error) {
 
 	return shaMap, nil
 }
+
+func getAppliedBlobs(repoPath string) error {
+	filepath.WalkDir(repoPath, getLocalBlob())
+}
