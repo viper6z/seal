@@ -1516,3 +1516,10 @@ request from inside Nginx to http://127.0.0.1/healthz
 Both returned a healthy response.
 
 The remaining final test is to use the Go CLI to add a completely new public service, merge the generated Compose and Nginx configuration, and verify that the agent deploys it automatically. After that this version of the homelab is finished and I will continue working on my kubeadm lab.
+
+
+##2026-08-05
+Added local drift detection and runtime drift detection to the agent. Agent now compares local blob sha of configs with blob sha of fetched target configs. Agent also checks that all declared services are running with docker compose config --services compared to docker compose ps --format json checking that all services declared exist in the json output with status running.
+The agent previously only reconciled when thee was a new commit (target != applied), but this doesnt account for local drift on disk where config files accidentally edited or removed and containers with exited status or stopped. 
+managedPathsChanged function was removed as it was made redundant by the compareBlobs because compareBlobs compares target to files on disk while managedPathsChanged compared target commit to last applied commit which didnt account for drift.
+Tested all cases locally.

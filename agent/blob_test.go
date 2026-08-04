@@ -27,3 +27,11 @@ func TestCompareBlobs(t *testing.T) {
 	}
 	t.Log(verdict)
 }
+
+func TestCheckContainers(t *testing.T) {
+	verdict, err := checkContainers("/home/granl/seal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(verdict)
+}
