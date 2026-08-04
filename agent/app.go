@@ -699,6 +699,46 @@ func getTargetBlobs(repoPath string, target string) (map[string]string, error) {
 	return shaMap, nil
 }
 
-func getAppliedBlobs(repoPath string) error {
-	filepath.WalkDir(repoPath, getLocalBlob())
+// make a map containing compose and nginx config file names and their respective hash values
+func getDiskBlobs(repoPath string) (map[string]string, error) {
+	shaMap := make(map[string]string)
+
+	err := filepath.WalkDir(filepath.Join(repoPath, "nginx", "conf.d/"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+		cmd := exec.Command("git", "hash-object", path)
+		cmd.Dir = repoPath
+
+		output, err := cmd.Output()
+		if err != nil {
+			return err
+		}
+		cleanoutput := strings.TrimSuffix(string(output), "\n")
+		//path needs to be relative to repo root not home
+		relativePath, err := filepath.Rel(repoPath, path)
+		if err != nil {
+			return err
+		}
+		shaMap[relativePath] = cleanoutput
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	composePath := filepath.Join(repoPath, "compose.yaml")
+	cmd := exec.Command("git", "hash-object", composePath)
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	cleanoutput := strings.TrimSuffix(string(output), "\n")
+	shaMap["compose.yaml"] = cleanoutput
+
+	return shaMap, nil
 }

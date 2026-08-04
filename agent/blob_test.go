@@ -11,3 +11,11 @@ func TestGetTargetBlobs(t *testing.T) {
 	}
 	t.Log(blobs)
 }
+
+func TestGetDiskBlobs(t *testing.T) {
+	blobs, err := getDiskBlobs("/home/granl/seal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(blobs)
+}
