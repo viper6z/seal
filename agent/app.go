@@ -742,3 +742,30 @@ func getDiskBlobs(repoPath string) (map[string]string, error) {
 
 	return shaMap, nil
 }
+
+func compareBlobs(repoPath string, target string) (bool, error) {
+	targetMap, err := getTargetBlobs(repoPath, target)
+	if err != nil {
+		return false, err
+	}
+	diskMap, err := getDiskBlobs(repoPath)
+	if err != nil {
+		return false, err
+	}
+
+	for path, targetSHA := range targetMap {
+		diskSHA, ok := diskMap[path]
+
+		if !ok {
+			return true, nil
+		}
+		if diskSHA != targetSHA {
+			return true, nil
+		}
+	}
+	if len(diskMap) != len(targetMap) {
+		return true, nil
+	}
+
+	return false, nil
+}
