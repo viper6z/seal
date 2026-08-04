@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -36,31 +38,29 @@ func main() {
 
 	fmt.Println("applied commit:", applied)
 	fmt.Println("target commit:", target)
-	// if its not the first run and theres no delta between applied and target we return early
-	if !firstRun && target == applied {
-		fmt.Println("already reconciled")
-		return
-	}
-
 	changed := true
 
 	if !firstRun {
-		//check if the diff touches our managed paths (nginx and compose)
-		changed, err = managedPathsChanged(repoPath, target, applied)
+		configDrift, err := compareBlobs(repoPath, target)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "compare managed paths:", err)
+			fmt.Fprintln(os.Stderr, "compare blobs:", err)
 			os.Exit(1)
 		}
+		runtimeDrift, err := checkContainers(repoPath)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "check runtime:", err)
+			os.Exit(1)
+		}
+		changed = configDrift || runtimeDrift
 	}
 
 	if !changed {
-		//if nothing is changed in the managed paths we just save the state and then return early
 		if err := saveAppliedCommit(statePath, target); err != nil {
 			fmt.Fprintln(os.Stderr, "advance applied commit:", err)
 			os.Exit(1)
 		}
 
-		fmt.Println("target contains no managed configuration changes")
+		fmt.Println("no drift detected")
 		return
 	}
 
@@ -155,21 +155,6 @@ func fetchTargetCommit(repoPath string) (target string, err error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
-}
-
-func managedPathsChanged(repoPath string, target string, applied string) (diff bool, err error) {
-	cmd := exec.Command("git", "diff", "--quiet", applied, target, "--", "compose.yaml", "nginx/conf.d/")
-	cmd.Dir = repoPath
-	err = cmd.Run()
-	if err == nil {
-		return false, nil
-	}
-
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-		return true, nil
-	}
-	return false, err
 }
 
 func reconcileConfigs(repoPath, target, stagingPath string) error {
@@ -767,5 +752,58 @@ func compareBlobs(repoPath string, target string) (bool, error) {
 		return true, nil
 	}
 
+	return false, nil
+}
+
+type RunningService struct {
+	Service string `json:"Service"`
+	State   string `json:"State"`
+}
+
+func checkContainers(repoPath string) (bool, error) {
+	cmd := exec.Command("docker", "compose", "config", "--services")
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	rawOutput := strings.TrimSuffix(string(output), "\n")
+	var declaredServices []string
+
+	if rawOutput != "" {
+		declaredServices = strings.Split(rawOutput, "\n")
+	}
+
+	cmd = exec.Command("docker", "compose", "ps", "--format", "json")
+	cmd.Dir = repoPath
+	output, err = cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	reader := bytes.NewReader(output)
+	decoder := json.NewDecoder(reader)
+
+	runningMap := make(map[string]bool)
+	// the reason for the foor loop is because the output is NDJSON (new line separated) so we need to loop until io.EOF
+	for {
+		var svc RunningService
+		err := decoder.Decode(&svc)
+
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return false, err
+		}
+		if svc.State == "running" {
+			runningMap[svc.Service] = true
+		}
+	}
+
+	for _, service := range declaredServices {
+		if !runningMap[service] {
+			return true, nil
+		}
+	}
 	return false, nil
 }
