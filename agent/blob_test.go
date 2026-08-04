@@ -19,3 +19,11 @@ func TestGetDiskBlobs(t *testing.T) {
 	}
 	t.Log(blobs)
 }
+
+func TestCompareBlobs(t *testing.T) {
+	verdict, err := compareBlobs("/home/granl/seal", "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(verdict)
+}
