@@ -33,19 +33,16 @@ Public applications receive explicitly declared Nginx routes. Internal applicati
 
 ## How it works
 
-Terraform creates the AWS network and EC2 instance. Cloud-init installs Docker, clones the repository, builds the agent and installs its systemd service and timer.
+The agent runs periodically and treats compose.yaml and nginx/conf.d/ on origin/main as desired state. It does not act on new commits alone: on every run it compares the target commit's blob hashes against the files on disk, and the services declared in Compose against the containers actually running. If either has diverged it reconciles, so a hand-edited config file or a stopped container is corrected without waiting for a commit.
 
-The agent runs periodically and treats `compose.yaml` and `nginx/conf.d/` on `origin/main` as desired state. It:
+When it reconciles, the agent:
 
-1. fetches the latest commit;
-2. stages the exact managed configuration;
-3. validates Docker Compose and Nginx;
-4. backs up and publishes the new files;
-5. applies the Compose stack and recreates Nginx;
-6. records the successfully applied commit;
-7. restores the previous configuration if runtime apply fails.
-
-GitHub Actions validates changes and uses AWS OIDC to run Terraform. Runtime deployment is owned by the host agent rather than pushed through CI.
+stages the exact managed configuration from the target commit;
+validates Docker Compose and Nginx against the staged files;
+backs up the current configuration and publishes the new files atomically;
+applies the Compose stack and recreates Nginx;
+records the successfully applied commit;
+restores the previous configuration and runtime if the apply fails.
 
 ## Repository layout
 
@@ -59,4 +56,6 @@ GitHub Actions validates changes and uses AWS OIDC to run Terraform. Runtime dep
 
 ## Scope
 
-Seal is intentionally not Kubernetes or a production platform. It is a focused learning project for understanding the layers between a developer-facing application definition and a reproducible running service on AWS.
+Seal is single-host by design and is not a production platform. Within that scope it does the real work: atomic configuration publishing with rollback, level-triggered reconciliation against observed state, and infrastructure provisioned through Terraform with OIDC-authenticated CI. It was built to understand the layers between a developer-facing application definition and a reproducible running service on AWS.
+
+
