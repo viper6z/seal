@@ -1523,4 +1523,5 @@ Added local drift detection and runtime drift detection to the agent. Agent now 
 The agent previously only reconciled when thee was a new commit (target != applied), but this doesnt account for local drift on disk where config files accidentally edited or removed and containers with exited status or stopped. 
 managedPathsChanged function was removed as it was made redundant by the compareBlobs because compareBlobs compares target to files on disk while managedPathsChanged compared target commit to last applied commit which didnt account for drift.
 Tested all cases locally.
-!
+
+Tested aswell on AWS EC2 host, that loads the repo and the agent through cloud init and runs it on a timer with systemd. Stopping a container leads to agent reconciling and restarting containers, and edits to for example the compose.yaml file gets reconciled
